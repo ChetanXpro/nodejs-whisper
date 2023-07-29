@@ -22,7 +22,7 @@
 	},
 	"devDependencies": {
 		"@types/dotenv": "^8.2.0",
-		"@types/node": "^20.4.4",
+		"@types/node": "^20.4.5",
 		"@types/readline-sync": "^1.4.4",
 		"@types/shelljs": "^0.8.12",
 		"prettier": "^3.0.0",
