@@ -1,15 +1,14 @@
 {
-	"name": "nodejswhisper",
+	"name": "nodejs-whisper",
 	"version": "1.0.0",
-	"description": "",
+	"description": "Node bindings for OpenAI's Whisper. Optimized for CPU.",
 	"main": "dist/index.js",
-	"private": true,
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"start": "ts-node src/index.ts",
 		"dev": "nodemon --watch 'src/**/*.ts' --exec ts-node src/index.ts",
 		"typecheck": "tsc --noEmit",
-		"build": "tsc",
+		"build": "tsc  && chmod +x dist/downloadModel.js",
 		"format": "prettier --write src/**/*.ts"
 	},
 	"keywords": [],
