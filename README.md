@@ -22,6 +22,13 @@ Node.js bindings for OpenAI's Whisper model.
 
 ## Installation
 
+1. Install ffmpeg
+
+ ```bash
+sudo apt update
+sudo apt install redis-server ffmpeg
+```
+
 1. Install nodejs-whisper with npm
 
 ```bash
