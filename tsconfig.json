@@ -1,21 +1,11 @@
 {
 	"compilerOptions": {
-		"target": "ES2020",
-		"module": "CommonJS",
-		"moduleResolution": "node",
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["src/*"]
-		},
-		"resolveJsonModule": true,
-		"outDir": "./dist",
-		"isolatedModules": true,
-		"forceConsistentCasingInFileNames": true,
-		"strict": true,
-		"noImplicitAny": true,
-		"skipLibCheck": true,
+		"module": "commonjs",
 		"esModuleInterop": true,
-		"pretty": true
+		"target": "es6",
+		"moduleResolution": "node",
+		"sourceMap": true,
+		"outDir": "dist"
 	},
-	"include": ["src/**/*"]
+	"lib": ["es2015"]
 }

@@ -1,21 +1,17 @@
-import dotenv from 'dotenv'
-import path from 'path'
-import fs from 'fs'
 import { WhisperOptions } from './types'
 import { executeCppCommand } from './whisper'
 import downloadModel from './downloadModel'
-import { MODELS } from './constants'
+
 import { constructCommand } from './WhisperHelper'
 import { checkIfFileExists, convertToWavType } from './utils'
-
-dotenv.config()
+import path from 'path'
 
 export interface IOptions {
 	modelName: string
-	whisperOptions: WhisperOptions
+	whisperOptions?: WhisperOptions
 }
 
-async function whisperNodejs(filePath: string, options: IOptions) {
+export async function nodewhisper(filePath: string, options: IOptions) {
 	checkIfFileExists(filePath)
 	await downloadModel()
 
@@ -25,24 +21,25 @@ async function whisperNodejs(filePath: string, options: IOptions) {
 
 	const command = constructCommand(outputFilePath, options!)
 
-	console.log('command', command)
+	// console.log(`[Nodejs-whisper]  Executing command: ${command}\n`)
 
-	let transcript = await executeCppCommand(command)
-	console.log('transcript', transcript)
+	const transcript = await executeCppCommand(command)
+
+	return transcript
 }
 
-// For testing purposes
-const filePath = path.resolve(__dirname, '..', 'basicaudio.wav')
+// const filePath = path.resolve(__dirname, '..', 'test.wav')
 
-whisperNodejs(filePath, {
-	modelName: 'tiny.en',
-	whisperOptions: {
-		outputInText: false,
-		outputInVtt: false,
-		outputInSrt: false,
-		outputInCsv: true,
-		translateToEnglish: false,
-		wordTimestamps: false,
-		timestamps_length: 20,
-	},
-})
+// nodewhisper(filePath, {
+// 	modelName: 'base.en',
+// 	whisperOptions: {
+// 		outputInText: false,
+// 		outputInVtt: false,
+// 		outputInSrt: true,
+// 		outputInCsv: false,
+// 		translateToEnglish: false,
+// 		wordTimestamps: false,
+// 		timestamps_length: 20,
+// 		splitOnWord: true,
+// 	},
+// })

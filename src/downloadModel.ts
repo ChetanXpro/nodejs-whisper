@@ -6,21 +6,22 @@ import fs from 'fs'
 
 const askForModel = async (): Promise<string> => {
 	const answer = await readlineSync.question(
-		`\nEnter model name (e.g. 'tiny.en') or 'cancel' to exit\n(ENTER for tiny.en): `
+		`\n[Nodejs-whisper] Enter model name (e.g. 'tiny.en') or 'cancel' to exit\n(ENTER for tiny.en): `
 	)
 
 	if (answer === 'cancel') {
-		console.log('Exiting model downloader.')
+		console.log('[Nodejs-whisper] Exiting model downloader.\n')
 		process.exit(0)
 	}
-	// user presses enter
+	// User presses enter
 	else if (answer === '') {
-		console.log('[whisper-node] Going with', DEFAULT_MODEL)
+		console.log('[Nodejs-whisper] Going with', DEFAULT_MODEL)
 		return DEFAULT_MODEL
 	} else if (!MODELS_LIST.includes(answer)) {
-		console.log('\nFAIL: Name not found. Check your spelling OR quit wizard and use custom model.')
+		console.log(
+			'\n[Nodejs-whisper] FAIL: Name not found. Check your spelling OR quit wizard and use custom model.\n'
+		)
 
-		// re-ask question
 		return await askForModel()
 	}
 
@@ -29,18 +30,13 @@ const askForModel = async (): Promise<string> => {
 
 export default async function downloadModel() {
 	try {
-		// process.chdir(path.join(__dirname, './cpp/whisper.cpp/models'))
-
-		shell.cd(path.join(__dirname, './cpp/whisper.cpp/models'))
-		// console.log()
+		shell.cd(path.join(__dirname, '..', './cpp/whisper.cpp/models'))
 
 		let anyModelExist = []
 
 		MODELS.forEach(model => {
-			if (!fs.existsSync(path.join(__dirname, `./cpp/whisper.cpp/models/${model}`))) {
+			if (!fs.existsSync(path.join(__dirname, '..', `./cpp/whisper.cpp/models/${model}`))) {
 			} else {
-				console.log('Exist', path.join(__dirname, `./cpp/whisper.cpp/models/${model}`))
-
 				anyModelExist.push(model)
 			}
 		})
@@ -49,7 +45,7 @@ export default async function downloadModel() {
 			return
 			// console.log('Models already exist. Skipping download.')
 		} else {
-			console.log('Models do not exist. Downloading...')
+			console.log('[Nodejs-whisper] Models do not exist. Please Select a model to download.\n')
 		}
 
 		console.log(`
@@ -68,7 +64,7 @@ export default async function downloadModel() {
 `)
 
 		if (!shell.which('./download-ggml-model.sh')) {
-			throw 'Downloader not found.'
+			throw '[Nodejs-whisper] Error: Downloader not found.\n'
 		}
 
 		const modelName = await askForModel()
@@ -81,7 +77,7 @@ export default async function downloadModel() {
 		shell.chmod('+x', scriptPath)
 		shell.exec(`${scriptPath} ${modelName}`)
 
-		console.log('Attempting to compile model...')
+		console.log('[Nodejs-whisper] Attempting to compile model...\n')
 
 		shell.cd('../')
 
@@ -89,7 +85,7 @@ export default async function downloadModel() {
 
 		process.exit(0)
 	} catch (error) {
-		console.log('ERROR Caught in downloadModel')
+		console.log('[Nodejs-whisper] Error Caught in downloadModel\n')
 		console.log(error)
 		return error
 	}
