@@ -1,8 +1,18 @@
 {
 	"name": "nodejs-whisper",
-	"version": "1.0.0",
+	"version": "0.0.3",
 	"description": "Node bindings for OpenAI's Whisper. Optimized for CPU.",
 	"main": "dist/index.js",
+	"publishConfig": {
+		"access": "public"
+	},
+	"bin": {
+		"download": "dist/downloadModel.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChetanXpro/nodejs-whisper"
+	},
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"start": "ts-node src/index.ts",
@@ -11,8 +21,33 @@
 		"build": "tsc  && chmod +x dist/downloadModel.js",
 		"format": "prettier --write src/**/*.ts"
 	},
-	"keywords": [],
-	"author": "",
+	"keywords": [
+		"OpenAI",
+		"Whisper",
+		"CPP",
+		"C++",
+		"Whisper",
+		"Bindings",
+		"Transcript",
+		"Transcriber",
+		"Audio",
+		"Speech",
+		"Speech-to-Text",
+		"Timestamps",
+		"nodejs whisper",
+		"whisper nodejs",
+		"generate timestamps",
+		"generate transcript",
+		"subtitle",
+		"nodejs-whisper",
+		"audio-to-subtitles"
+	],
+	"author": "chetan baliyan",
+	"license": "MIT",
+	"homepage": "https://github.com/ChetanXpro/nodejs-whisper#readme",
+	"bugs": {
+		"url": "https://github.com/ChetanXpro/nodejs-whisper/issues"
+	},
 	"dependencies": {
 		"axios": "^1.4.0",
 		"dotenv": "^16.3.1",
@@ -27,5 +62,9 @@
 		"prettier": "^3.0.0",
 		"ts-node": "^10.8.2",
 		"typescript": "^5.1.6"
-	}
+	},
+	"files": [
+		"dist",
+		"cpp"
+	]
 }

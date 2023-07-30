@@ -1,3 +1,7 @@
+#! /usr/bin/env node
+
+// npx nodejs-whisper download
+
 import path from 'path'
 import shell from 'shelljs'
 import readlineSync from 'readline-sync'
@@ -90,3 +94,5 @@ export default async function downloadModel() {
 		return error
 	}
 }
+// run on npx nodejs-whisper download
+downloadModel()
