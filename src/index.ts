@@ -4,7 +4,6 @@ import downloadModel from './downloadModel'
 
 import { constructCommand } from './WhisperHelper'
 import { checkIfFileExists, convertToWavType } from './utils'
-import path from 'path'
 
 export interface IOptions {
 	modelName: string
@@ -27,19 +26,3 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 
 	return transcript
 }
-
-// const filePath = path.resolve(__dirname, '..', 'test.wav')
-
-// nodewhisper(filePath, {
-// 	modelName: 'base.en',
-// 	whisperOptions: {
-// 		outputInText: false,
-// 		outputInVtt: false,
-// 		outputInSrt: true,
-// 		outputInCsv: false,
-// 		translateToEnglish: false,
-// 		wordTimestamps: false,
-// 		timestamps_length: 20,
-// 		splitOnWord: true,
-// 	},
-// })
