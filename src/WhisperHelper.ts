@@ -8,6 +8,14 @@ export const constructCommand = (filePath: string, args: IOptions) => {
 		throw new Error('[Nodejs-whisper] Error: Provide model name')
 	}
 
+	const isValidModelName = MODELS_LIST.findIndex(model => model == args.modelName)
+
+	if (isValidModelName == -1) {
+		console.log('[Nodejs-whisper] Error: Enter a valid model name')
+		console.log('[Nodejs-whisper] Available models are:\n', MODELS_LIST)
+		process.exit(1)
+	}
+
 	let anyModelExist = []
 
 	MODELS.forEach(model => {
