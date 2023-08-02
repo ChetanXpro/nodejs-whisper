@@ -36,6 +36,24 @@ export default async function downloadModel() {
 	try {
 		shell.cd(path.join(__dirname, '..', './cpp/whisper.cpp/models'))
 
+		const args = process.argv.slice(2)
+		if (args.length > 0) {
+			const modelName = args[0]
+			console.log('Downloading model:', modelName)
+			if (!MODELS_LIST.includes(modelName)) {
+				throw `[Nodejs-whisper] Error: Model name not found. Check your spelling.`
+			}
+			let scriptPath = './download-ggml-model.sh'
+
+			if (process.platform === 'win32') scriptPath = 'download-ggml-model.cmd'
+			shell.chmod('+x', scriptPath)
+			shell.exec(`${scriptPath} ${modelName}`)
+			console.log('[Nodejs-whisper] Attempting to compile model...\n')
+			shell.cd('../')
+			shell.exec('make')
+			process.exit(0)
+		}
+
 		let anyModelExist = []
 
 		MODELS.forEach(model => {
