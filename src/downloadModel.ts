@@ -74,10 +74,9 @@ export default async function downloadModel() {
 		const modelName = await askForModel()
 
 		let scriptPath = './download-ggml-model.sh'
-		// windows .cmd version
+
 		if (process.platform === 'win32') scriptPath = 'download-ggml-model.cmd'
 
-		// todo: check if windows or unix to run bat command or .sh command
 		shell.chmod('+x', scriptPath)
 		shell.exec(`${scriptPath} ${modelName}`)
 

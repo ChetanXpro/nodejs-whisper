@@ -20,7 +20,6 @@ export const convertToWavType = async (inputFilePath: string) => {
 	)
 
 	if (fileExtension !== 'wav') {
-		console.warn('[Nodejs-whisper] Warning: Unsupported audio format.\n')
 		console.log('[Nodejs-whisper]  Converting audio to wav File Type...\n')
 		const command = `ffmpeg -nostats -loglevel 0 -i ${inputFilePath} -ar 16000 -ac 1 -c:a pcm_s16le  ${outputFilePath}.wav`
 
