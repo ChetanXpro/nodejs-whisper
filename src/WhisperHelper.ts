@@ -36,15 +36,7 @@ export const constructCommand = (filePath: string, args: IOptions) => {
 		throw new Error('[Nodejs-whisper] Error: Model not found')
 	}
 
-	const defaultOutput =
-		!args?.whisperOptions?.outputInCsv &&
-		!args?.whisperOptions?.outputInSrt &&
-		!args?.whisperOptions?.outputInText &&
-		!args?.whisperOptions?.outputInVtt
-
-	let command = `./main  ${constructOptionsFlags(args)} ${
-		defaultOutput && '-osrt'
-	}  -l auto -m ./models/${modelName}  -f ${filePath}  `
+	let command = `./main  ${constructOptionsFlags(args)} -l auto -m ./models/${modelName}  -f ${filePath}  `
 
 	return command
 }
