@@ -21,6 +21,9 @@ export async function whisperShell(command: string, options: IShellOptions = def
 			// docs: https://github.com/shelljs/shelljs#execcommand--options--callback
 			shell.exec(command, options, (code: number, stdout: string, stderr: string) => {
 				if (code === 0) {
+					if (stdout.match(/^error:/gm)) {
+						throw new Error('whisper.cpp error:\n' + stdout)
+					}
 					console.log('[Nodejs-whisper] Transcribing Done!')
 
 					resolve(stdout)
