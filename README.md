@@ -16,11 +16,11 @@ Node.js bindings for OpenAI's Whisper model.
 
 ## Installation
 
-1. Install ffmpeg and make tools
+1. Install make tools
 
 ```bash
 sudo apt update
-sudo apt install ffmpeg build-essential
+sudo apt install  build-essential
 ```
 
 1. Install nodejs-whisper with npm
