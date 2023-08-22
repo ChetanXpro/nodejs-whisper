@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import shell from 'shelljs'
+import ffmpegPath from 'ffmpeg-static'
 
 export const checkIfFileExists = async (filePath: string) => {
 	const isExist = fs.existsSync(filePath)
@@ -21,7 +22,7 @@ export const convertToWavType = async (inputFilePath: string) => {
 
 	if (fileExtension !== 'wav') {
 		console.log('[Nodejs-whisper]  Converting audio to wav File Type...\n')
-		const command = `ffmpeg -nostats -loglevel 0 -i ${inputFilePath} -ar 16000 -ac 1 -c:a pcm_s16le  ${outputFilePath}.wav`
+		const command = `${ffmpegPath} -nostats -loglevel 0 -i ${inputFilePath} -ar 16000 -ac 1 -c:a pcm_s16le  ${outputFilePath}.wav`
 
 		shell.exec(command)
 		return `${outputFilePath}.wav`

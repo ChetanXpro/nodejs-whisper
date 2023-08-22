@@ -50,6 +50,7 @@
 		"url": "https://github.com/ChetanXpro/nodejs-whisper/issues"
 	},
 	"dependencies": {
+		"ffmpeg-static": "^5.2.0",
 		"readline-sync": "^1.4.10",
 		"shelljs": "^0.8.5"
 	},
