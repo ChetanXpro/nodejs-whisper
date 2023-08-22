@@ -28,7 +28,7 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 
 	const command = constructCommand(outputFilePath, options!)
 
-	// console.log(`[Nodejs-whisper]  Executing command: ${command}\n`)
+	console.log(`[Nodejs-whisper]  Executing command: ${command}\n`)
 
 	const transcript = await executeCppCommand(command)
 
