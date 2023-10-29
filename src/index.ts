@@ -1,6 +1,5 @@
 import { WhisperOptions } from './types'
 import { executeCppCommand } from './whisper'
-// import downloadModel from './downloadModel'
 
 import { constructCommand } from './WhisperHelper'
 import { checkIfFileExists, convertToWavType } from './utils'
@@ -19,8 +18,6 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 	}
 
 	checkIfFileExists(filePath)
-	console.log(`[Nodejs-whisper]  Transcribing file: ${filePath}\n`)
-	// await downloadModel()
 
 	const outputFilePath = await convertToWavType(filePath)
 
@@ -31,6 +28,10 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 	console.log(`[Nodejs-whisper]  Executing command: ${command}\n`)
 
 	const transcript = await executeCppCommand(command)
+
+	if (transcript.length === 0) {
+		throw new Error('Something went wrong while executing the command.')
+	}
 
 	return transcript
 }

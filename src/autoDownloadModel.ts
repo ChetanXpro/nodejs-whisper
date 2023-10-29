@@ -5,6 +5,7 @@ import { MODELS_LIST, MODELS } from './constants'
 import fs from 'fs'
 
 export default async function autoDownloadModel(autoDownloadModelName?: string) {
+	const projectDir = process.cwd()
 	try {
 		if (autoDownloadModelName) {
 			if (!MODELS_LIST.includes(autoDownloadModelName))
@@ -23,6 +24,8 @@ export default async function autoDownloadModel(autoDownloadModelName?: string) 
 
 			return new Promise((resolve, reject) => {
 				if (anyModelExist.length > 0) {
+					console.log('[Nodejs-whisper] Models already exist. Skipping download.')
+
 					resolve('Models already exist. Skipping download.')
 
 					// console.log('Models already exist. Skipping download.')
@@ -49,6 +52,7 @@ export default async function autoDownloadModel(autoDownloadModelName?: string) 
 	} catch (error) {
 		console.log('[Nodejs-whisper] Error Caught in downloadModel\n')
 		console.log(error)
+		shell.cd(projectDir)
 		return error
 	}
 }
