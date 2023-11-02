@@ -13,7 +13,7 @@ Node.js bindings for OpenAI's Whisper model.
 -   Split on word rather than on token (Optional)
 -   Translate from source language to english (Optional)
 -   Convert audio formet to wav to support whisper model
--   Using static ffmpeg binary so no need to install ffmpeg in your system
+
 
 ## Installation
 
