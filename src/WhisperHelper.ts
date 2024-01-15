@@ -67,8 +67,5 @@ const constructOptionsFlags = (args: IOptions) => {
 	if (args?.whisperOptions?.splitOnWord) {
 		flag += `-sow true `
 	}
-	if (args?.whisperOptions?.language){
-		flag += `-l ${args.whisperOptions.language}`
-	}
 	return flag
 }
