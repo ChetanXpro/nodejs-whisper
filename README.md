@@ -50,6 +50,8 @@ const filePath = path.resolve(__dirname, 'YourAudioFileName')
 await nodewhisper(filePath, {
 	modelName: 'base.en', //Downloaded models name
 	autoDownloadModelName: 'base.en', // (optional) autodownload a model if model is not present
+        verbose?: boolean
+	removeWavFileAfterTranscription?: boolean
 	whisperOptions: {
 		outputInText: false, // get output result in txt file
 		outputInVtt: false, // get output result in vtt file
