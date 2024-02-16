@@ -4,7 +4,7 @@ import shell from 'shelljs'
 import { MODELS_LIST, MODELS } from './constants'
 import fs from 'fs'
 
-export default async function autoDownloadModel(autoDownloadModelName?: string) {
+export default async function autoDownloadModel(autoDownloadModelName?: string, verbose?: boolean) {
 	const projectDir = process.cwd()
 	try {
 		if (autoDownloadModelName) {
@@ -24,7 +24,9 @@ export default async function autoDownloadModel(autoDownloadModelName?: string) 
 
 			return new Promise((resolve, reject) => {
 				if (anyModelExist.length > 0) {
-					console.log('[Nodejs-whisper] Models already exist. Skipping download.')
+					if (verbose) {
+						console.log('[Nodejs-whisper] Models already exist. Skipping download.')
+					}
 
 					resolve('Models already exist. Skipping download.')
 

@@ -12,7 +12,7 @@ export const checkIfFileExists = async (filePath: string) => {
 	}
 }
 
-export const convertToWavType = async (inputFilePath: string) => {
+export const convertToWavType = async (inputFilePath: string, verbose: boolean) => {
 	const fileExtension = inputFilePath.split('.').pop()
 
 	const outputFilePath = path.join(
@@ -21,8 +21,10 @@ export const convertToWavType = async (inputFilePath: string) => {
 	)
 
 	if (fileExtension !== 'wav') {
-		console.log('[Nodejs-whisper]  Converting audio to wav File Type...\n')
-		const command = `${ffmpegPath} -nostats -loglevel 0 -i ${inputFilePath} -ar 16000 -ac 1 -c:a pcm_s16le  ${outputFilePath}.wav`
+		if (verbose) {
+			console.log(`[Nodejs-whisper]  Converting audio to wav File Type...\n`)
+		}
+		const command = `${ffmpegPath} -nostats -loglevel error -y -i ${inputFilePath} -ar 16000 -ac 1 -c:a pcm_s16le  ${outputFilePath}.wav`
 
 		shell.exec(command)
 		return `${outputFilePath}.wav`

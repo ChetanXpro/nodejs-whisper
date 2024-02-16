@@ -17,7 +17,11 @@ const defaultShellOptions = {
 
 const projectDir = process.cwd()
 
-export async function whisperShell(command: string, options: IShellOptions = defaultShellOptions): Promise<any> {
+export async function whisperShell(
+	command: string,
+	options: IShellOptions = defaultShellOptions,
+	verbose: boolean
+): Promise<any> {
 	return new Promise(async (resolve, reject) => {
 		try {
 			// docs: https://github.com/shelljs/shelljs#execcommand--options--callback
@@ -27,7 +31,12 @@ export async function whisperShell(command: string, options: IShellOptions = def
 						shell.cd(projectDir)
 						throw new Error('whisper.cpp error:\n' + stdout)
 					}
-					console.log('[Nodejs-whisper] Transcribing Done!')
+					if (verbose) {
+						console.log(stdout)
+
+						console.log('[Nodejs-whisper] Transcribing Done!')
+					}
+
 					shell.cd(projectDir)
 					resolve(stdout)
 				} else {
@@ -41,7 +50,7 @@ export async function whisperShell(command: string, options: IShellOptions = def
 	})
 }
 
-export const executeCppCommand = async (command: string) => {
+export const executeCppCommand = async (command: string, verbose: boolean) => {
 	try {
 		shell.cd(WHISPER_CPP_PATH)
 
@@ -60,10 +69,10 @@ export const executeCppCommand = async (command: string) => {
 			} else {
 				console.log("[Nodejs-whisper] 'make' command successful. Current directory: ", __dirname)
 
-				return await whisperShell(command, defaultShellOptions)
+				return await whisperShell(command, defaultShellOptions, verbose)
 			}
 		} else {
-			return await whisperShell(command, defaultShellOptions)
+			return await whisperShell(command, defaultShellOptions, verbose)
 		}
 	} catch (error) {
 		shell.cd(projectDir)

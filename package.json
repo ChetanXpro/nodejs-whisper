@@ -1,6 +1,6 @@
 {
 	"name": "nodejs-whisper",
-	"version": "0.1.5",
+	"version": "0.1.10",
 	"description": "Node bindings for OpenAI's Whisper. Optimized for CPU.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
