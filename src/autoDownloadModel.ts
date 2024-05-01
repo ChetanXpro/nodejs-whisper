@@ -4,7 +4,11 @@ import shell from 'shelljs'
 import { MODELS_LIST, MODELS } from './constants'
 import fs from 'fs'
 
-export default async function autoDownloadModel(autoDownloadModelName?: string, verbose?: boolean) {
+export default async function autoDownloadModel(
+	autoDownloadModelName?: string,
+	verbose?: boolean,
+	withCuda: boolean = false
+) {
 	const projectDir = process.cwd()
 	try {
 		if (autoDownloadModelName) {
@@ -45,7 +49,11 @@ export default async function autoDownloadModel(autoDownloadModelName?: string, 
 
 					shell.cd('../')
 
-					shell.exec('make')
+					if (withCuda) {
+						shell.exec('WHISPER_CUDA=1 make -j')
+					} else {
+						shell.exec('make -j')
+					}
 
 					resolve('Model Downloaded Successfully')
 				}

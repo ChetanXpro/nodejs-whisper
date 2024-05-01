@@ -32,6 +32,20 @@ const askForModel = async (): Promise<string> => {
 	return answer
 }
 
+const askIfUserWantToUseCuda = async () => {
+	const answer = await readlineSync.question(
+		`\n[Nodejs-whisper] Do you want to use CUDA for compilation? (y/n)\n(ENTER for n): `
+	)
+
+	if (answer === 'y') {
+		console.log('[Nodejs-whisper] Using CUDA for compilation.')
+		return true
+	} else {
+		console.log('[Nodejs-whisper] Not using CUDA for compilation.')
+		return false
+	}
+}
+
 export default async function downloadModel() {
 	try {
 		shell.cd(path.join(__dirname, '..', './cpp/whisper.cpp/models'))
@@ -84,7 +98,13 @@ export default async function downloadModel() {
 
 		shell.cd('../')
 
-		shell.exec('make')
+		const withCuda = await askIfUserWantToUseCuda()
+
+		if (withCuda) {
+			shell.exec('WHISPER_CUDA=1 make -j')
+		} else {
+			shell.exec('make -j')
+		}
 
 		process.exit(0)
 	} catch (error) {
