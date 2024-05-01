@@ -50,14 +50,18 @@ export async function whisperShell(
 	})
 }
 
-export const executeCppCommand = async (command: string, verbose: boolean) => {
+export const executeCppCommand = async (command: string, verbose: boolean, withCuda: boolean) => {
 	try {
 		shell.cd(WHISPER_CPP_PATH)
 
 		if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
 			shell.echo('[Nodejs-whisper] whisper.cpp not initialized.', __dirname)
 			shell.echo("[Nodejs-whisper] Attempting to run 'make' command in /whisper directory...")
-			shell.exec('make')
+			if (withCuda) {
+				shell.exec('WHISPER_CUDA=1 make -j')
+			} else {
+				shell.exec('make -j')
+			}
 
 			if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
 				console.log(

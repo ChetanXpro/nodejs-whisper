@@ -10,6 +10,8 @@ export interface IOptions {
 	modelName: string
 	autoDownloadModelName?: string
 	whisperOptions?: WhisperOptions
+	withCuda?: boolean
+
 	verbose?: boolean
 	removeWavFileAfterTranscription?: boolean
 }
@@ -18,7 +20,7 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 	const { verbose = false } = options
 	const { removeWavFileAfterTranscription = true } = options
 	if (options.autoDownloadModelName) {
-		await autoDownloadModel(options.autoDownloadModelName, verbose)
+		await autoDownloadModel(options.autoDownloadModelName, verbose, options.withCuda)
 	}
 
 	checkIfFileExists(filePath)
@@ -33,7 +35,7 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 		console.log(`[Nodejs-whisper]  Executing command: ${command}\n`)
 	}
 
-	const transcript = await executeCppCommand(command, verbose)
+	const transcript = await executeCppCommand(command, verbose, options.withCuda)
 
 	if (!transcript) {
 		throw new Error('Something went wrong while executing the command.')
