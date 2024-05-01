@@ -52,6 +52,7 @@ await nodewhisper(filePath, {
 	autoDownloadModelName: 'base.en', // (optional) autodownload a model if model is not present
         verbose?: boolean
 	removeWavFileAfterTranscription?: boolean
+	withCuda?: boolean // (optional) use cuda for faster processing
 	whisperOptions: {
 		outputInText: false, // get output result in txt file
 		outputInVtt: false, // get output result in vtt file
@@ -84,6 +85,9 @@ const MODELS_LIST = [
 ```
  interface IOptions {
 	modelName: string
+	verbose?: boolean
+	removeWavFileAfterTranscription?: boolean
+	withCuda?: boolean
 	autoDownloadModelName?: string
 	whisperOptions?: WhisperOptions
 }
