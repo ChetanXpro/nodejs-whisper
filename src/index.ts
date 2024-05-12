@@ -16,13 +16,16 @@ export interface IOptions {
 
 export async function nodewhisper(filePath: string, options: IOptions) {
 	try {
-		const { verbose = false, removeWavFileAfterTranscription = true } = options
+		const { verbose = false, removeWavFileAfterTranscription = false } = options
 
 		if (options.autoDownloadModelName) {
 			if (verbose)
 				console.log(
 					`[Nodejs-whisper] Checking and downloading model if needed: ${options.autoDownloadModelName}`
 				)
+			console.log('autoDownloadModelName', options.autoDownloadModelName)
+			console.log('options', options)
+
 			await autoDownloadModel(options.autoDownloadModelName, verbose, options.withCuda)
 		}
 
