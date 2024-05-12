@@ -5,82 +5,74 @@ import { MODELS } from './constants'
 
 const WHISPER_CPP_PATH = path.join(__dirname, '..', 'cpp', 'whisper.cpp')
 const WHISPER_CPP_MAIN_PATH = './main'
+const projectDir = process.cwd()
+
 export interface IShellOptions {
-	silent: boolean // true: won't print to console
+	silent: boolean
 	async: boolean
 }
 
-const defaultShellOptions = {
-	silent: true, // true: won't print to console
+const defaultShellOptions: IShellOptions = {
+	silent: true,
 	async: true,
 }
 
-const projectDir = process.cwd()
+function handleError(error: Error) {
+	console.error('[Nodejs-whisper] Error:', error.message)
+	shell.cd(projectDir)
+	throw error
+}
 
 export async function whisperShell(
 	command: string,
 	options: IShellOptions = defaultShellOptions,
 	verbose: boolean
-): Promise<any> {
-	return new Promise(async (resolve, reject) => {
-		try {
-			// docs: https://github.com/shelljs/shelljs#execcommand--options--callback
-			shell.exec(command, options, (code: number, stdout: string, stderr: string) => {
-				if (code === 0) {
-					if (stdout.match(/^error:/gm)) {
-						shell.cd(projectDir)
-						throw new Error('whisper.cpp error:\n' + stdout)
-					}
-					if (verbose) {
-						console.log(stdout)
+): Promise<string> {
+	return new Promise<string>((resolve, reject) => {
+		shell.exec(command, options, (code, stdout, stderr) => {
+			console.log('code---', code)
+			console.log('stdout---', stdout)
+			console.log('stderr---', stderr)
 
-						console.log('[Nodejs-whisper] Transcribing Done!')
-					}
-
-					shell.cd(projectDir)
-					resolve(stdout)
-				} else {
-					shell.cd(projectDir)
-					reject(stderr)
+			if (code === 0) {
+				if (stdout.includes('error:')) {
+					reject(new Error('Error in whisper.cpp:\n' + stdout))
+					return
 				}
-			})
-		} catch (error) {
-			reject(error)
-		}
+				if (verbose) {
+					console.log('stdout---', stdout)
+					console.log('[Nodejs-whisper] Transcribing Done!')
+				}
+
+				resolve(stdout)
+			} else {
+				reject(new Error(stderr))
+			}
+		})
+	}).catch((error: Error) => {
+		handleError(error)
+		return Promise.reject(error)
 	})
 }
 
-export const executeCppCommand = async (command: string, verbose: boolean, withCuda: boolean) => {
+export async function executeCppCommand(command: string, verbose: boolean, withCuda: boolean): Promise<string> {
 	try {
 		shell.cd(WHISPER_CPP_PATH)
-
 		if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
-			shell.echo('[Nodejs-whisper] whisper.cpp not initialized.', __dirname)
-			shell.echo("[Nodejs-whisper] Attempting to run 'make' command in /whisper directory...")
-			if (withCuda) {
-				shell.exec('WHISPER_CUDA=1 make -j')
-			} else {
-				shell.exec('make -j')
-			}
+			console.log('[Nodejs-whisper] whisper.cpp not initialized.')
+			const makeCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
+			shell.exec(makeCommand)
 
 			if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
-				console.log(
-					" [Nodejs-whisper] 'make' command failed. Please run 'make' command in /whisper.cpp directory. Current shelljs directory: ",
-					__dirname
+				throw new Error(
+					"[Nodejs-whisper] 'make' command failed. Please run 'make' command in /whisper.cpp directory."
 				)
-				shell.cd(projectDir)
-				process.exit(1)
-			} else {
-				console.log("[Nodejs-whisper] 'make' command successful. Current directory: ", __dirname)
-
-				return await whisperShell(command, defaultShellOptions, verbose)
 			}
-		} else {
-			return await whisperShell(command, defaultShellOptions, verbose)
+			console.log("[Nodejs-whisper] 'make' command successful.")
 		}
+		return await whisperShell(command, defaultShellOptions, verbose)
 	} catch (error) {
-		shell.cd(projectDir)
-		console.log('[Nodejs-whisper] Error in whisper.ts catch block.')
-		throw error
+		handleError(error as Error)
+		throw new Error('Failed to execute C++ command')
 	}
 }

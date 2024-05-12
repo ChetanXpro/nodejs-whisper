@@ -1,34 +1,32 @@
 import fs from 'fs'
 import path from 'path'
 import shell from 'shelljs'
-import ffmpegPath from 'ffmpeg-static'
 
-export const checkIfFileExists = async (filePath: string) => {
-	const isExist = fs.existsSync(filePath)
-
-	if (!isExist) {
-		console.error(`[Nodejs-whisper] Error: No such file : ${filePath}\n`)
-		process.exit(1)
+export const checkIfFileExists = (filePath: string) => {
+	if (!fs.existsSync(filePath)) {
+		throw new Error(`[Nodejs-whisper] Error: No such file: ${filePath}`)
 	}
 }
 
 export const convertToWavType = async (inputFilePath: string, verbose: boolean) => {
-	const fileExtension = inputFilePath.split('.').pop()
+	const fileExtension = path.extname(inputFilePath).toLowerCase()
 
-	const outputFilePath = path.join(
-		path.dirname(inputFilePath),
-		path.basename(inputFilePath, path.extname(inputFilePath))
-	)
-
-	if (fileExtension !== 'wav') {
-		if (verbose) {
-			console.log(`[Nodejs-whisper]  Converting audio to wav File Type...\n`)
-		}
-		const command = `${ffmpegPath} -nostats -loglevel error -y -i ${inputFilePath} -ar 16000 -ac 1 -c:a pcm_s16le  ${outputFilePath}.wav`
-
-		shell.exec(command)
-		return `${outputFilePath}.wav`
-	} else {
+	if (fileExtension === '.wav') {
 		return inputFilePath
 	}
+
+	const outputFilePath = path.join(path.dirname(inputFilePath), `${path.basename(inputFilePath, fileExtension)}.wav`)
+
+	if (verbose) {
+		console.log(`[Nodejs-whisper] Converting audio to WAV file type...\n`)
+	}
+
+	const command = `ffmpeg -nostats -loglevel error -y -i "${inputFilePath}" -ar 16000 -ac 1 -c:a pcm_s16le "${outputFilePath}"`
+	const result = shell.exec(command, { silent: !verbose })
+
+	if (result.code !== 0) {
+		throw new Error(`[Nodejs-whisper] Failed to convert audio file: ${result.stderr}`)
+	}
+
+	return outputFilePath
 }
