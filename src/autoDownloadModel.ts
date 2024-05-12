@@ -1,8 +1,7 @@
 import path from 'path'
 import shell from 'shelljs'
-
-import { MODELS_LIST, MODELS } from './constants'
 import fs from 'fs'
+import { MODELS_LIST, MODELS } from './constants'
 
 export default async function autoDownloadModel(
 	autoDownloadModelName?: string,
@@ -10,59 +9,55 @@ export default async function autoDownloadModel(
 	withCuda: boolean = false
 ) {
 	const projectDir = process.cwd()
+
+	if (!autoDownloadModelName) {
+		throw new Error('[Nodejs-whisper] Error: Model name must be provided.')
+	}
+
+	if (!MODELS_LIST.includes(autoDownloadModelName)) {
+		throw new Error('[Nodejs-whisper] Error: Provide a valid model name')
+	}
+
 	try {
-		if (autoDownloadModelName) {
-			if (!MODELS_LIST.includes(autoDownloadModelName))
-				throw new Error('[Nodejs-whisper] Error: Provide valid model name')
+		const modelDirectory = path.join(__dirname, '..', 'cpp', 'whisper.cpp', 'models')
+		shell.cd(modelDirectory)
 
-			shell.cd(path.join(__dirname, '..', './cpp/whisper.cpp/models'))
+		const existingModels = MODELS.filter(model => fs.existsSync(path.join(modelDirectory, model)))
 
-			let anyModelExist = []
-
-			MODELS.forEach(model => {
-				if (fs.existsSync(path.join(__dirname, '..', `./cpp/whisper.cpp/models/${model}`))) {
-					anyModelExist.push(model)
-					// console.log('anyModelExist found', model)
-				}
-			})
-
-			return new Promise((resolve, reject) => {
-				if (anyModelExist.length > 0) {
-					if (verbose) {
-						console.log('[Nodejs-whisper] Models already exist. Skipping download.')
-					}
-
-					resolve('Models already exist. Skipping download.')
-
-					// console.log('Models already exist. Skipping download.')
-				} else {
-					console.log(`[Nodejs-whisper] Autodownload Model: ${autoDownloadModelName}\n`)
-
-					let scriptPath = './download-ggml-model.sh'
-
-					if (process.platform === 'win32') scriptPath = 'download-ggml-model.cmd'
-
-					shell.chmod('+x', scriptPath)
-					shell.exec(`${scriptPath} ${autoDownloadModelName}`)
-
-					console.log('[Nodejs-whisper] Attempting to compile model...\n')
-
-					shell.cd('../')
-
-					if (withCuda) {
-						shell.exec('WHISPER_CUDA=1 make -j')
-					} else {
-						shell.exec('make -j')
-					}
-
-					resolve('Model Downloaded Successfully')
-				}
-			})
+		if (existingModels.length > 0) {
+			if (verbose) {
+				console.log('[Nodejs-whisper] Models already exist. Skipping download.')
+			}
+			return 'Models already exist. Skipping download.'
 		}
+
+		console.log(`[Nodejs-whisper] Auto-download Model: ${autoDownloadModelName}`)
+		let scriptPath = './download-ggml-model.sh'
+		if (process.platform === 'win32') {
+			scriptPath = 'download-ggml-model.cmd'
+		}
+
+		shell.chmod('+x', scriptPath)
+		const result = shell.exec(`${scriptPath} ${autoDownloadModelName}`, { silent: !verbose })
+
+		if (result.code !== 0) {
+			throw new Error(`[Nodejs-whisper] Failed to download model: ${result.stderr}`)
+		}
+
+		console.log('[Nodejs-whisper] Attempting to compile model...')
+		shell.cd('../')
+
+		const compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
+		const compileResult = shell.exec(compileCommand, { silent: !verbose })
+
+		if (compileResult.code !== 0) {
+			throw new Error(`[Nodejs-whisper] Failed to compile model: ${compileResult.stderr}`)
+		}
+
+		return 'Model downloaded and compiled successfully'
 	} catch (error) {
-		console.log('[Nodejs-whisper] Error Caught in downloadModel\n')
-		console.log(error)
+		console.error('[Nodejs-whisper] Error caught in autoDownloadModel:', error)
 		shell.cd(projectDir)
-		return error
+		throw error
 	}
 }

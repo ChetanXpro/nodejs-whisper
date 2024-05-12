@@ -1,6 +1,6 @@
 {
 	"name": "nodejs-whisper",
-	"version": "0.1.12",
+	"version": "0.1.13",
 	"description": "Node bindings for OpenAI's Whisper. Optimized for CPU.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -50,7 +50,6 @@
 		"url": "https://github.com/ChetanXpro/nodejs-whisper/issues"
 	},
 	"dependencies": {
-		"ffmpeg-static": "^5.2.0",
 		"readline-sync": "^1.4.10",
 		"shelljs": "^0.8.5"
 	},
