@@ -27,7 +27,7 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 	}
 
 	const modelName = MODEL_OBJECT[args.modelName as keyof typeof MODEL_OBJECT]
-	let command = `./main  ${constructOptionsFlags(args)} -l auto -m ./models/${modelName}  -f ${filePath}`
+	let command = `./main  ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language ? args.whisperOptions?.language : "auto"} -m ./models/${modelName}  -f ${filePath}`
 
 	return command
 }

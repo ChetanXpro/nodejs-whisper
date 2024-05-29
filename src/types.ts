@@ -4,6 +4,7 @@ export interface WhisperOptions {
 	outputInSrt?: boolean
 	outputInCsv?: boolean
 	translateToEnglish?: boolean
+	language?: string
 	timestamps_length?: number
 	wordTimestamps?: boolean
 	splitOnWord?: boolean
