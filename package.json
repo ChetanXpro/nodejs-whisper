@@ -54,7 +54,7 @@
 		"shelljs": "^0.8.5"
 	},
 	"devDependencies": {
-		"@types/node": "^20.4.4",
+		"@types/node": "^22.0.0",
 		"@types/readline-sync": "^1.4.4",
 		"@types/shelljs": "^0.8.12",
 		"prettier": "^3.0.0",
