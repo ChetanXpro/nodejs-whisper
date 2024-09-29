@@ -7,12 +7,12 @@ Node.js bindings for OpenAI's Whisper model.
 ## Features
 
 -   Automatically convert the audio to WAV format with a 16000 Hz frequency to support the whisper model.
--   Output transcripts to (.txt .srt .vtt)
+-   Output transcripts to (.txt .srt .vtt .json .wts .lrc)
 -   Optimized for CPU (Including Apple Silicon ARM)
 -   Timestamp precision to single word
 -   Split on word rather than on token (Optional)
 -   Translate from source language to english (Optional)
--   Convert audio formet to wav to support whisper model
+-   Convert audio format to wav to support whisper model
 
 
 ## Installation
@@ -21,16 +21,16 @@ Node.js bindings for OpenAI's Whisper model.
 
 ```bash
 sudo apt update
-sudo apt install  build-essential
+sudo apt install build-essential
 ```
 
-1. Install nodejs-whisper with npm
+2. Install nodejs-whisper with npm
 
 ```bash
   npm i nodejs-whisper
 ```
 
-2.  Download whisper model
+3. Download whisper model
 
 ```bash
   npx nodejs-whisper download
@@ -50,18 +50,22 @@ const filePath = path.resolve(__dirname, 'YourAudioFileName')
 await nodewhisper(filePath, {
 	modelName: 'base.en', //Downloaded models name
 	autoDownloadModelName: 'base.en', // (optional) autodownload a model if model is not present
-        verbose?: boolean
-	removeWavFileAfterTranscription?: boolean
-	withCuda?: boolean // (optional) use cuda for faster processing
+    verbose: false, // (optional) output more dubugging information
+	removeWavFileAfterTranscription: false, // (optional) remove wav file once transcribed
+	withCuda: false // (optional) use cuda for faster processing
 	whisperOptions: {
+		outputInCsv: false, // get output result in csv file
+		outputInJson: false, // get output result in json file
+		outputInJsonFull: false, // get output result in json file including more information
+		outputInLrc: false, // get output result in lrc file
+		outputInSrt: true, // get output result in srt file
 		outputInText: false, // get output result in txt file
 		outputInVtt: false, // get output result in vtt file
-		outputInSrt: true, // get output result in srt file
-		outputInCsv: false, // get output result in csv file
-		translateToEnglish: false, //translate from source language to english
-		wordTimestamps: false, // Word-level timestamps
+		outputInWords: false, // get output result in wts file for karaoke
+		translateToEnglish: false, // translate from source language to english
+		wordTimestamps: false, // word-level timestamps
 		timestamps_length: 20, // amount of dialogue per timestamp pair
-		splitOnWord: true, //split on word rather than on token
+		splitOnWord: true, // split on word rather than on token
 	},
 })
 
@@ -93,10 +97,14 @@ const MODELS_LIST = [
 }
 
  interface WhisperOptions {
+	outputInCsv?: boolean
+	outputInJson?: boolean
+	outputInJsonFull?: boolean
+	outputInLrc?: boolean
+	outputInSrt?: boolean
 	outputInText?: boolean
 	outputInVtt?: boolean
-	outputInSrt?: boolean
-	outputInCsv?: boolean
+	outputInWords?: boolean
 	translateToEnglish?: boolean
 	timestamps_length?: number
 	wordTimestamps?: boolean
@@ -105,7 +113,7 @@ const MODELS_LIST = [
 
 ```
 
-## Run Locally
+## Run locally
 
 Clone the project
 
@@ -131,7 +139,7 @@ Start the server
   npm run dev
 ```
 
-Build Project
+Build project
 
 ```bash
   npm run build
