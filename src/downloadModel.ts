@@ -8,21 +8,21 @@ import readlineSync from 'readline-sync'
 import { MODELS_LIST, DEFAULT_MODEL, MODELS } from './constants'
 import fs from 'fs'
 
-const askForModel = async (): Promise<string> => {
+const askForModel = async (logger = console): Promise<string> => {
 	const answer = await readlineSync.question(
 		`\n[Nodejs-whisper] Enter model name (e.g. 'tiny.en') or 'cancel' to exit\n(ENTER for tiny.en): `
 	)
 
 	if (answer === 'cancel') {
-		console.log('[Nodejs-whisper] Exiting model downloader.\n')
+		logger.log('[Nodejs-whisper] Exiting model downloader.\n')
 		process.exit(0)
 	}
 	// User presses enter
 	else if (answer === '') {
-		console.log('[Nodejs-whisper] Going with', DEFAULT_MODEL)
+		logger.log('[Nodejs-whisper] Going with', DEFAULT_MODEL)
 		return DEFAULT_MODEL
 	} else if (!MODELS_LIST.includes(answer)) {
-		console.log(
+		logger.log(
 			'\n[Nodejs-whisper] FAIL: Name not found. Check your spelling OR quit wizard and use custom model.\n'
 		)
 
@@ -32,21 +32,21 @@ const askForModel = async (): Promise<string> => {
 	return answer
 }
 
-const askIfUserWantToUseCuda = async () => {
+const askIfUserWantToUseCuda = async (logger = console) => {
 	const answer = await readlineSync.question(
 		`\n[Nodejs-whisper] Do you want to use CUDA for compilation? (y/n)\n(ENTER for n): `
 	)
 
 	if (answer === 'y') {
-		console.log('[Nodejs-whisper] Using CUDA for compilation.')
+		logger.log('[Nodejs-whisper] Using CUDA for compilation.')
 		return true
 	} else {
-		console.log('[Nodejs-whisper] Not using CUDA for compilation.')
+		logger.log('[Nodejs-whisper] Not using CUDA for compilation.')
 		return false
 	}
 }
 
-export default async function downloadModel() {
+export default async function downloadModel(logger = console) {
 	try {
 		shell.cd(path.join(__dirname, '..', './cpp/whisper.cpp/models'))
 
@@ -61,12 +61,12 @@ export default async function downloadModel() {
 
 		if (anyModelExist.length > 0) {
 			return
-			// console.log('Models already exist. Skipping download.')
+			// logger.log('Models already exist. Skipping download.')
 		} else {
-			console.log('[Nodejs-whisper] Models do not exist. Please Select a model to download.\n')
+			logger.log('[Nodejs-whisper] Models do not exist. Please Select a model to download.\n')
 		}
 
-		console.log(`
+		logger.log(`
 | Model     | Disk   | RAM     |
 |-----------|--------|---------|
 | tiny      |  75 MB | ~390 MB |
@@ -94,7 +94,7 @@ export default async function downloadModel() {
 		shell.chmod('+x', scriptPath)
 		shell.exec(`${scriptPath} ${modelName}`)
 
-		console.log('[Nodejs-whisper] Attempting to compile model...\n')
+		logger.log('[Nodejs-whisper] Attempting to compile model...\n')
 
 		shell.cd('../')
 
@@ -108,8 +108,8 @@ export default async function downloadModel() {
 
 		process.exit(0)
 	} catch (error) {
-		console.log('[Nodejs-whisper] Error Caught in downloadModel\n')
-		console.log(error)
+		logger.error('[Nodejs-whisper] Error Caught in downloadModel\n')
+		logger.error(error)
 		return error
 	}
 }

@@ -15,11 +15,11 @@
 		"url": "https://github.com/ChetanXpro/nodejs-whisper"
 	},
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
 		"start": "ts-node src/index.ts",
 		"dev": "nodemon --watch 'src/**/*.ts' --exec ts-node src/index.ts",
+		"test": "ts-node example/index.ts",
 		"typecheck": "tsc --noEmit",
-		"build": "tsc  && chmod +x dist/downloadModel.js",
+		"build": "tsc && chmod +x dist/downloadModel.js",
 		"format": "prettier --write src/**/*.ts"
 	},
 	"keywords": [
@@ -44,6 +44,12 @@
 		"audio-to-subtitles"
 	],
 	"author": "chetan baliyan",
+	"contributors": [
+		{
+			"name": "Michael Heuberger",
+			"email": "michael.heuberger@binarykitchen.com"
+		}
+	],
 	"license": "MIT",
 	"homepage": "https://github.com/ChetanXpro/nodejs-whisper#readme",
 	"bugs": {
@@ -57,6 +63,7 @@
 		"@types/node": "^22.0.0",
 		"@types/readline-sync": "^1.4.4",
 		"@types/shelljs": "^0.8.12",
+		"nodemon": "3.1.7",
 		"prettier": "^3.0.0",
 		"ts-node": "^10.8.2",
 		"typescript": "^5.1.6"
