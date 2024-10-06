@@ -34,10 +34,14 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 
 const constructOptionsFlags = (args: IOptions): string => {
 	let flags = [
+		args.whisperOptions?.outputInCsv ? '-ocsv ' : '',
+		args.whisperOptions?.outputInJson ? '-oj ' : '',
+		args.whisperOptions?.outputInJsonFull ? '-ojf ' : '',
+		args.whisperOptions?.outputInLrc ? '-olrc ' : '',
+		args.whisperOptions?.outputInSrt ? '-osrt ' : '',
 		args.whisperOptions?.outputInText ? '-otxt ' : '',
 		args.whisperOptions?.outputInVtt ? '-ovtt ' : '',
-		args.whisperOptions?.outputInSrt ? '-osrt ' : '',
-		args.whisperOptions?.outputInCsv ? '-ocsv ' : '',
+		args.whisperOptions?.outputInWords ? '-owts ' : '',
 		args.whisperOptions?.translateToEnglish ? '-tr ' : '',
 		args.whisperOptions?.wordTimestamps ? '-ml 1 ' : '',
 		args.whisperOptions?.timestamps_length ? `-ml ${args.whisperOptions.timestamps_length} ` : '',
