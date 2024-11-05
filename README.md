@@ -14,7 +14,6 @@ Node.js bindings for OpenAI's Whisper model.
 -   Translate from source language to english (Optional)
 -   Convert audio format to wav to support whisper model
 
-
 ## Installation
 
 1. Install make tools
@@ -40,6 +39,8 @@ sudo apt install build-essential
 
 ## Usage/Examples
 
+See `example/index.ts` (can be run with `$ npm run test`)
+
 ```javascript
 import path from 'path'
 import { nodewhisper } from 'nodejs-whisper'
@@ -50,9 +51,9 @@ const filePath = path.resolve(__dirname, 'YourAudioFileName')
 await nodewhisper(filePath, {
 	modelName: 'base.en', //Downloaded models name
 	autoDownloadModelName: 'base.en', // (optional) autodownload a model if model is not present
-    verbose: false, // (optional) output more dubugging information
 	removeWavFileAfterTranscription: false, // (optional) remove wav file once transcribed
 	withCuda: false // (optional) use cuda for faster processing
+	logger: console // (optional) Logging instance, defaults to console
 	whisperOptions: {
 		outputInCsv: false, // get output result in csv file
 		outputInJson: false, // get output result in json file
@@ -89,11 +90,11 @@ const MODELS_LIST = [
 ```
  interface IOptions {
 	modelName: string
-	verbose?: boolean
 	removeWavFileAfterTranscription?: boolean
 	withCuda?: boolean
 	autoDownloadModelName?: string
 	whisperOptions?: WhisperOptions
+	logger?: Console
 }
 
  interface WhisperOptions {

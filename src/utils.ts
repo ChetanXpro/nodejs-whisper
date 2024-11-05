@@ -28,27 +28,23 @@ async function isValidWavHeader(filePath) {
 	})
 }
 
-export const convertToWavType = async (inputFilePath, verbose) => {
+export const convertToWavType = async (inputFilePath, logger = console) => {
 	const fileExtension = path.extname(inputFilePath).toLowerCase()
 
-	if (verbose) {
-		console.log(`[Nodejs-whisper] Checking if the file is a valid WAV: ${inputFilePath}`)
-	}
+	logger.debug(`[Nodejs-whisper] Checking if the file is a valid WAV: ${inputFilePath}`)
 
 	if (fileExtension === '.wav') {
 		const isWav = await isValidWavHeader(inputFilePath)
 		if (isWav) {
-			if (verbose) {
-				console.log(`[Nodejs-whisper] File is a valid WAV file.`)
-			}
+			logger.debug(`[Nodejs-whisper] File is a valid WAV file.`)
+
 			return inputFilePath
 		} else {
-			if (verbose) {
-				console.log(`[Nodejs-whisper] File has a .wav extension but is not a valid WAV, overwriting...`)
-			}
+			logger.debug(`[Nodejs-whisper] File has a .wav extension but is not a valid WAV, overwriting...`)
+
 			// Overwrite the original WAV file
 			const command = `ffmpeg -nostats -loglevel error -y -i "${inputFilePath}" -ar 16000 -ac 1 -c:a pcm_s16le "${inputFilePath}"`
-			const result = shell.exec(command, { silent: !verbose })
+			const result = shell.exec(command)
 			if (result.code !== 0) {
 				throw new Error(`[Nodejs-whisper] Failed to convert audio file: ${result.stderr}`)
 			}
@@ -60,11 +56,11 @@ export const convertToWavType = async (inputFilePath, verbose) => {
 			path.dirname(inputFilePath),
 			`${path.basename(inputFilePath, fileExtension)}.wav`
 		)
-		if (verbose) {
-			console.log(`[Nodejs-whisper] Converting to a new WAV file: ${outputFilePath}`)
-		}
+
+		logger.debug(`[Nodejs-whisper] Converting to a new WAV file: ${outputFilePath}`)
+
 		const command = `ffmpeg -nostats -loglevel error -y -i "${inputFilePath}" -ar 16000 -ac 1 -c:a pcm_s16le "${outputFilePath}"`
-		const result = shell.exec(command, { silent: !verbose })
+		const result = shell.exec(command)
 		if (result.code !== 0) {
 			throw new Error(`[Nodejs-whisper] Failed to convert audio file: ${result.stderr}`)
 		}
