@@ -17,8 +17,8 @@ const defaultShellOptions: IShellOptions = {
 	async: true,
 }
 
-function handleError(error: Error) {
-	console.error('[Nodejs-whisper] Error:', error.message)
+function handleError(error: Error, logger = console) {
+	logger.error('[Nodejs-whisper] Error:', error.message)
 	shell.cd(projectDir)
 	throw error
 }
@@ -26,23 +26,22 @@ function handleError(error: Error) {
 export async function whisperShell(
 	command: string,
 	options: IShellOptions = defaultShellOptions,
-	verbose: boolean
+	logger = console
 ): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
 		shell.exec(command, options, (code, stdout, stderr) => {
-			console.log('code---', code)
-			console.log('stdout---', stdout)
-			console.log('stderr---', stderr)
+			logger.debug('code---', code)
+			logger.debug('stdout---', stdout)
+			logger.debug('stderr---', stderr)
 
 			if (code === 0) {
 				if (stdout.includes('error:')) {
 					reject(new Error('Error in whisper.cpp:\n' + stdout))
 					return
 				}
-				if (verbose) {
-					console.log('stdout---', stdout)
-					console.log('[Nodejs-whisper] Transcribing Done!')
-				}
+
+				logger.debug('stdout---', stdout)
+				logger.debug('[Nodejs-whisper] Transcribing Done!')
 
 				resolve(stdout)
 			} else {
@@ -55,11 +54,12 @@ export async function whisperShell(
 	})
 }
 
-export async function executeCppCommand(command: string, verbose: boolean, withCuda: boolean): Promise<string> {
+export async function executeCppCommand(command: string, logger = console, withCuda: boolean): Promise<string> {
 	try {
 		shell.cd(WHISPER_CPP_PATH)
 		if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
-			console.log('[Nodejs-whisper] whisper.cpp not initialized.')
+			logger.debug('[Nodejs-whisper] whisper.cpp not initialized.')
+
 			const makeCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
 			shell.exec(makeCommand)
 
@@ -68,9 +68,10 @@ export async function executeCppCommand(command: string, verbose: boolean, withC
 					"[Nodejs-whisper] 'make' command failed. Please run 'make' command in /whisper.cpp directory."
 				)
 			}
-			console.log("[Nodejs-whisper] 'make' command successful.")
+
+			logger.log("[Nodejs-whisper] 'make' command successful.")
 		}
-		return await whisperShell(command, defaultShellOptions, verbose)
+		return await whisperShell(command, defaultShellOptions, logger)
 	} catch (error) {
 		handleError(error as Error)
 		throw new Error('Failed to execute C++ command')
