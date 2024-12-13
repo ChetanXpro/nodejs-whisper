@@ -37,6 +37,24 @@ sudo apt install build-essential
 
 -   NOTE: user may need to install make tool
 
+### Windows Installation
+
+1. Install MinGW-w64 or MSYS2 (which includes make tools)
+   - Option 1: Install MSYS2 from https://www.msys2.org/
+   - Option 2: Install MinGW-w64 from https://www.mingw-w64.org/
+
+2. Install nodejs-whisper with npm
+```bash
+npm i nodejs-whisper
+```
+
+3. Download whisper model
+```bash
+npx nodejs-whisper download
+```
+
+- Note: Make sure mingw32-make or make is available in your system PATH.
+
 ## Usage/Examples
 
 See `example/index.ts` (can be run with `$ npm run test`)
