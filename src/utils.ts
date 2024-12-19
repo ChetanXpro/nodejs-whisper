@@ -30,21 +30,21 @@ async function isValidWavHeader(filePath) {
 }
 
 export const convertToWavType = async (inputAudioSrc: FilePath | Buffer, logger = console) => {
-	//NOTE: Buffer 데이터가 들어온 경우
+	//When Buffer data is received
 	if (Buffer.isBuffer(inputAudioSrc)) {
 		logger.debug('[Nodejs-whisper] Starting audio buffer conversion process')
 
-		//NOTE: 임시 입력 파일 생성
+		//Create temporary input file
 		const tempInputPath = `Nodejs-whisper-input_${Date.now()}`
 		fs.writeFileSync(tempInputPath, inputAudioSrc)
 		logger.debug(`[Nodejs-whisper] Temporary input file created: ${tempInputPath}`)
 
-		//NOTE: 출력 WAV 파일 경로 설정
+		//Set output WAV file path
 		const outputFilePath = `Nodejs-whisper-temp_${Date.now()}.wav`
 		logger.debug(`[Nodejs-whisper] Output WAV path set: ${outputFilePath}`)
 
 		try {
-			//NOTE: ffmpeg 명령어 실행
+			//Same logic as before
 			const command = `ffmpeg -nostats -loglevel error -y -i "${tempInputPath}" -ar 16000 -ac 1 -c:a pcm_s16le "${outputFilePath}"`
 			logger.debug(`[Nodejs-whisper] Executing ffmpeg command: ${command}`)
 
