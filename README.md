@@ -100,6 +100,7 @@ const MODELS_LIST = [
 	'medium.en',
 	'large-v1',
 	'large',
+	'large-v3-turbo',
 ]
 ```
 
