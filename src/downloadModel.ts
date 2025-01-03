@@ -46,7 +46,7 @@ const askIfUserWantToUseCuda = async (logger = console) => {
 	}
 }
 
- async function downloadModel(logger = console) {
+async function downloadModel(logger = console) {
 	try {
 		shell.cd(path.join(__dirname, '..', './cpp/whisper.cpp/models'))
 
@@ -60,10 +60,10 @@ const askIfUserWantToUseCuda = async (logger = console) => {
 		})
 
 		if (anyModelExist.length > 0) {
-            console.log('\n[Nodejs-whisper] Currently installed models:')
-            anyModelExist.forEach(model => console.log(`- ${model}`))
-            console.log('\n[Nodejs-whisper] You can install additional models from the list below.\n')
-        }
+			console.log('\n[Nodejs-whisper] Currently installed models:')
+			anyModelExist.forEach(model => console.log(`- ${model}`))
+			console.log('\n[Nodejs-whisper] You can install additional models from the list below.\n')
+		}
 
 		logger.log(`
 | Model          | Disk   | RAM     |
@@ -115,7 +115,6 @@ const askIfUserWantToUseCuda = async (logger = console) => {
 }
 // run on npx nodejs-whisper download
 downloadModel().catch(error => {
-    console.error('Failed to download:', error)
-    process.exit(1)
+	console.error('Failed to download:', error)
+	process.exit(1)
 })
-
