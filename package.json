@@ -8,7 +8,7 @@
 		"access": "public"
 	},
 	"bin": {
-		"download": "dist/downloadModel.js"
+		"nodejs-whisper": "dist/downloadModel.js"
 	},
 	"repository": {
 		"type": "git",
@@ -43,13 +43,7 @@
 		"nodejs-whisper",
 		"audio-to-subtitles"
 	],
-	"author": "chetan baliyan",
-	"contributors": [
-		{
-			"name": "Michael Heuberger",
-			"email": "michael.heuberger@binarykitchen.com"
-		}
-	],
+	"author": "chetan",
 	"license": "MIT",
 	"homepage": "https://github.com/ChetanXpro/nodejs-whisper#readme",
 	"bugs": {
