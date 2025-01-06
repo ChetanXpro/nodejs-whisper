@@ -15,9 +15,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: ${{ github.head_ref }}
         token: ${{ secrets.GITHUB_TOKEN }}
-        
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -32,9 +31,21 @@ jobs:
     
     - name: Format code
       run: npm run format
-      
+
+    # For pushes to main or PRs from same repo, commit formatting changes
     - name: Commit changes
+      if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
         commit_message: "style: format code with prettier"
-        branch: ${{ github.head_ref }}
+        branch: ${{ github.event_name == 'push' && 'main' || github.head_ref }}
+
+    # For PRs from forks, fail the check if there are formatting changes required
+    - name: Check for uncommitted changes
+      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+      run: |
+        if [[ -n "$(git status --porcelain)" ]]; then
+          echo "::error::Code formatting issues found. Please run 'npm run format' locally and commit the changes."
+          git diff
+          exit 1
+        fi
