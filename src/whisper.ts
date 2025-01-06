@@ -9,7 +9,7 @@ export interface IShellOptions {
 }
 
 const defaultShellOptions: IShellOptions = {
-	silent: true,
+	silent: false,
 	async: true,
 }
 
@@ -36,7 +36,6 @@ export async function whisperShell(
 					return
 				}
 
-				logger.debug('stdout---', stdout)
 				logger.debug('[Nodejs-whisper] Transcribing Done!')
 
 				resolve(stdout)
@@ -70,6 +69,5 @@ export async function executeCppCommand(command: string, logger = console, withC
 		return await whisperShell(command, defaultShellOptions, logger)
 	} catch (error) {
 		handleError(error as Error)
-		throw new Error('Failed to execute C++ command')
 	}
 }

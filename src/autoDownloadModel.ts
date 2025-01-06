@@ -24,7 +24,7 @@ export default async function autoDownloadModel(
 		const modelAlreadyExist = fs.existsSync(path.join(modelDirectory, MODEL_OBJECT[autoDownloadModelName]))
 
 		if (modelAlreadyExist) {
-			logger.debug(`[Nodejs-whisper] ${autoDownloadModel} already exist. Skipping download.`)
+			logger.debug(`[Nodejs-whisper] ${autoDownloadModelName} already exist. Skipping download.`)
 
 			return 'Models already exist. Skipping download.'
 		}
