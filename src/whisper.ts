@@ -53,13 +53,13 @@ export async function whisperShell(
 export async function executeCppCommand(command: string, logger = console, withCuda: boolean): Promise<string> {
 	try {
 		shell.cd(WHISPER_CPP_PATH)
-		if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
+		if (!shell.which(WHISPER_CPP_MAIN_PATH.replace(/\\/g, '/'))) {
 			logger.debug('[Nodejs-whisper] whisper.cpp not initialized.')
 
 			const makeCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
 			shell.exec(makeCommand)
 
-			if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
+			if (!shell.which(WHISPER_CPP_MAIN_PATH.replace(/\\/g, '/'))) {
 				throw new Error(
 					"[Nodejs-whisper] 'make' command failed. Please run 'make' command in /whisper.cpp directory."
 				)
