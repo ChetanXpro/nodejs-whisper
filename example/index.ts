@@ -10,8 +10,8 @@ const filePath = path.resolve(__dirname, AUDIO_FILE)
 async function convert() {
 	try {
 		await nodewhisper(filePath, {
-			modelName: 'base.en',
-			autoDownloadModelName: 'base.en',
+			modelName: 'tiny.en',
+			autoDownloadModelName: 'tiny.en',
 			whisperOptions: {
 				outputInVtt: true,
 				// Default is 20 which is too long
@@ -20,6 +20,7 @@ async function convert() {
 		})
 	} catch (exc) {
 		console.error(exc)
+		process.exit(1)
 	}
 }
 
