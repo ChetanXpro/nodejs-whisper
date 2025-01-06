@@ -63,11 +63,7 @@
 		"typescript": "^5.1.6"
 	},
 	"files": [
-		"src/",
-		"cpp/",
-		"!**/bindings/**",
-		"!**/examples/**",
-		"!**/tests/**",
-		"!**/samples/**"
-	]
+    "dist/",
+    "cpp/"
+]
 }
