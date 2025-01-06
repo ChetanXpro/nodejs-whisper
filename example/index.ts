@@ -20,6 +20,7 @@ async function convert() {
 		})
 	} catch (exc) {
 		console.error(exc)
+		process.exit(1)
 	}
 }
 
