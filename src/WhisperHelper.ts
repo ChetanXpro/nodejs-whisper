@@ -1,7 +1,7 @@
 import path from 'path'
 
 import fs from 'fs'
-import { MODELS, MODELS_LIST, MODEL_OBJECT } from './constants'
+import { MODELS_LIST, MODEL_OBJECT, WHISPER_CPP_PATH, WHISPER_CPP_MAIN_PATH } from './constants'
 import { IOptions } from '.'
 
 export const constructCommand = (filePath: string, args: IOptions): string => {
@@ -15,7 +15,7 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 		errors.push(`[Nodejs-whisper] Error: Enter a valid model name. Available models are: ${MODELS_LIST.join(', ')}`)
 	}
 
-	const modelPath = path.join(__dirname, '..', 'cpp', 'whisper.cpp', 'models', MODEL_OBJECT[args.modelName])
+	const modelPath = path.join(WHISPER_CPP_PATH, 'models', MODEL_OBJECT[args.modelName])
 	if (!fs.existsSync(modelPath)) {
 		errors.push(
 			'[Nodejs-whisper] Error: Model file does not exist. Please ensure the model is downloaded and correctly placed.'
@@ -27,7 +27,7 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 	}
 
 	const modelName = MODEL_OBJECT[args.modelName as keyof typeof MODEL_OBJECT]
-	let command = `./main  ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language ? args.whisperOptions?.language : 'auto'} -m "./models/${modelName}"  -f "${filePath}"`
+	let command = `${WHISPER_CPP_MAIN_PATH} ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language ? args.whisperOptions?.language : 'auto'} -m "./models/${modelName}"  -f "${filePath}"`
 
 	return command
 }

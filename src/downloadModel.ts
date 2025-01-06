@@ -5,7 +5,7 @@
 import path from 'path'
 import shell from 'shelljs'
 import readlineSync from 'readline-sync'
-import { MODELS_LIST, DEFAULT_MODEL, MODELS } from './constants'
+import { MODELS_LIST, DEFAULT_MODEL, MODELS, WHISPER_CPP_PATH, MODEL_OBJECT } from './constants'
 import fs from 'fs'
 
 const askForModel = async (logger = console): Promise<string> => {
@@ -48,12 +48,12 @@ const askIfUserWantToUseCuda = async (logger = console) => {
 
 async function downloadModel(logger = console) {
 	try {
-		shell.cd(path.join(__dirname, '..', './cpp/whisper.cpp/models'))
+		shell.cd(path.join(WHISPER_CPP_PATH, 'models'))
 
 		let anyModelExist = []
 
 		MODELS.forEach(model => {
-			if (!fs.existsSync(path.join(__dirname, '..', `./cpp/whisper.cpp/models/${model}`))) {
+			if (!fs.existsSync(path.join(WHISPER_CPP_PATH, 'models', MODEL_OBJECT[model]))) {
 			} else {
 				anyModelExist.push(model)
 			}
