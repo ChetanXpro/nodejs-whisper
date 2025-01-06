@@ -1,10 +1,6 @@
-import fs from 'fs'
-import path from 'path'
 import shell from 'shelljs'
-import { MODELS } from './constants'
+import { WHISPER_CPP_PATH, WHISPER_CPP_MAIN_PATH } from './constants'
 
-const WHISPER_CPP_PATH = path.join(__dirname, '..', 'cpp', 'whisper.cpp')
-const WHISPER_CPP_MAIN_PATH = './main'
 const projectDir = process.cwd()
 
 export interface IShellOptions {
@@ -57,13 +53,13 @@ export async function whisperShell(
 export async function executeCppCommand(command: string, logger = console, withCuda: boolean): Promise<string> {
 	try {
 		shell.cd(WHISPER_CPP_PATH)
-		if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
+		if (!shell.which(WHISPER_CPP_MAIN_PATH.replace(/\\/g, '/'))) {
 			logger.debug('[Nodejs-whisper] whisper.cpp not initialized.')
 
 			const makeCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
 			shell.exec(makeCommand)
 
-			if (!shell.which(WHISPER_CPP_MAIN_PATH)) {
+			if (!shell.which(WHISPER_CPP_MAIN_PATH.replace(/\\/g, '/'))) {
 				throw new Error(
 					"[Nodejs-whisper] 'make' command failed. Please run 'make' command in /whisper.cpp directory."
 				)

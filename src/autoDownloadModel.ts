@@ -1,7 +1,7 @@
 import path from 'path'
 import shell from 'shelljs'
 import fs from 'fs'
-import { MODELS_LIST, MODELS } from './constants'
+import { MODEL_OBJECT, MODELS_LIST, WHISPER_CPP_PATH } from './constants'
 
 export default async function autoDownloadModel(
 	logger = console,
@@ -19,9 +19,9 @@ export default async function autoDownloadModel(
 	}
 
 	try {
-		const modelDirectory = path.join(__dirname, '..', 'cpp', 'whisper.cpp', 'models')
+		const modelDirectory = path.join(WHISPER_CPP_PATH, 'models')
 		shell.cd(modelDirectory)
-		const modelAlreadyExist = fs.existsSync(path.join(modelDirectory, autoDownloadModelName))
+		const modelAlreadyExist = fs.existsSync(path.join(modelDirectory, MODEL_OBJECT[autoDownloadModelName]))
 
 		if (modelAlreadyExist) {
 			logger.debug(`[Nodejs-whisper] ${autoDownloadModel} already exist. Skipping download.`)
