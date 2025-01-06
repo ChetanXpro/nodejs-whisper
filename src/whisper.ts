@@ -1,10 +1,6 @@
-import fs from 'fs'
-import path from 'path'
 import shell from 'shelljs'
-import { MODELS } from './constants'
+import { WHISPER_CPP_PATH, WHISPER_CPP_MAIN_PATH } from './constants'
 
-const WHISPER_CPP_PATH = path.join(__dirname, '..', 'cpp', 'whisper.cpp')
-const WHISPER_CPP_MAIN_PATH = './main'
 const projectDir = process.cwd()
 
 export interface IShellOptions {

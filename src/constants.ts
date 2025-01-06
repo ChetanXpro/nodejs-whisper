@@ -1,3 +1,5 @@
+import path from 'path'
+
 export const MODELS_LIST = [
 	'tiny',
 	'tiny.en',
@@ -41,3 +43,6 @@ export const MODEL_OBJECT = {
 }
 
 export const DEFAULT_MODEL = 'tiny.en'
+
+export const WHISPER_CPP_PATH = path.join(__dirname, '..', 'cpp', 'whisper.cpp')
+export const WHISPER_CPP_MAIN_PATH = './build/bin/whisper-cli'
