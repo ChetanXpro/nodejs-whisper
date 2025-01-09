@@ -14,15 +14,17 @@ jobs:
       image: archlinux:base-devel
 
     steps:
-    - name: Install Git
-      run: pacman -Sy --noconfirm git
+    - name: Install Git and CMake
+      run: |
+        pacman -Sy --noconfirm
+        pacman -S --noconfirm git cmake
 
     - uses: actions/checkout@v4
       with:
         submodules: true
 
     - name: Setup Node.js
-      run: pacman -Sy --noconfirm nodejs npm
+      run: pacman -S --noconfirm nodejs npm
 
     - name: Install dependencies
       run: npm ci
