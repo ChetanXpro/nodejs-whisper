@@ -14,6 +14,9 @@ jobs:
       image: archlinux:base-devel
 
     steps:
+    - name: Install Git
+      run: pacman -Sy --noconfirm git
+
     - uses: actions/checkout@v4
       with:
         submodules: true
