@@ -52,7 +52,7 @@ async function downloadModel(logger = console) {
 
 		let anyModelExist = []
 
-		MODELS.forEach(model => {
+		MODELS_LIST.forEach(model => {
 			if (!fs.existsSync(path.join(WHISPER_CPP_PATH, 'models', MODEL_OBJECT[model]))) {
 			} else {
 				anyModelExist.push(model)
@@ -100,11 +100,23 @@ async function downloadModel(logger = console) {
 
 		const withCuda = await askIfUserWantToUseCuda()
 
-		if (withCuda) {
-			shell.exec('WHISPER_CUDA=1 make -j')
+		let compileCommand: string
+		if (process.platform === 'win32') {
+			// Try mingw32-make first
+			if (shell.which('mingw32-make')) {
+				compileCommand = withCuda ? 'WHISPER_CUDA=1 mingw32-make -j' : 'mingw32-make -j'
+			} else if (shell.which('make')) {
+				compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
+			} else {
+				throw new Error(
+					'[Nodejs-whisper] Neither mingw32-make nor make found. Please install MinGW-w64 or MSYS2.'
+				)
+			}
 		} else {
-			shell.exec('make -j')
+			compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
 		}
+
+		shell.exec(compileCommand)
 
 		process.exit(0)
 	} catch (error) {
