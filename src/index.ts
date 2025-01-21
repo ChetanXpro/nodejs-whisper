@@ -14,7 +14,9 @@ export interface IOptions {
 	logger?: Console
 }
 
-export async function nodewhisper(filePath: string, options: IOptions) {
+export type FilePath = string
+
+export async function nodewhisper(audioSrc: FilePath | Buffer, options: IOptions) {
 	const { removeWavFileAfterTranscription = false, logger = console } = options
 
 	try {
@@ -27,11 +29,14 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 			await autoDownloadModel(logger, options.autoDownloadModelName, options.withCuda)
 		}
 
-		logger.debug(`[Nodejs-whisper] Checking file existence: ${filePath}`)
-		checkIfFileExists(filePath)
+		logger.debug(`[Nodejs-whisper] Checking file existence: ${audioSrc}`)
+		if (!Buffer.isBuffer(audioSrc)) {
+			logger.debug(`[Nodejs-whisper] Checking file existence: ${audioSrc}`)
+			checkIfFileExists(audioSrc)
+		}
 
-		logger.debug(`[Nodejs-whisper] Converting file to WAV format: ${filePath}`)
-		const outputFilePath = await convertToWavType(filePath, logger)
+		logger.debug(`[Nodejs-whisper] Converting file to WAV format: ${audioSrc}`)
+		const outputFilePath = await convertToWavType(audioSrc, logger)
 
 		logger.debug(`[Nodejs-whisper] Constructing command for file: ${outputFilePath}`)
 		const command = constructCommand(outputFilePath, options)
