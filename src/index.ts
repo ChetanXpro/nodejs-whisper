@@ -12,10 +12,11 @@ export interface IOptions {
 	withCuda?: boolean
 	removeWavFileAfterTranscription?: boolean
 	logger?: Console
+	responseFormat?: 'json' | 'csv' | 'srt' | 'vtt' | 'lrc' | 'text'
 }
 
 export async function nodewhisper(filePath: string, options: IOptions) {
-	const { removeWavFileAfterTranscription = false, logger = console } = options
+	const { removeWavFileAfterTranscription = false, logger = console, responseFormat } = options
 
 	try {
 		if (options.autoDownloadModelName) {
@@ -46,6 +47,12 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 		if (removeWavFileAfterTranscription && fs.existsSync(outputFilePath)) {
 			logger.debug(`[Nodejs-whisper] Removing temporary WAV file: ${outputFilePath}`)
 			fs.unlinkSync(outputFilePath)
+		}
+
+		if (responseFormat) {
+			logger.debug(`[Nodejs-whisper] Retrieving response from: ${command}`)
+			const response = fs.readFileSync(`${outputFilePath}.${responseFormat}`, 'utf8')
+			return responseFormat === 'json' ? JSON.parse(response) : response
 		}
 
 		return transcript

@@ -33,6 +33,11 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 }
 
 const constructOptionsFlags = (args: IOptions): string => {
+	if (args.responseFormat) {
+		// Include the response format...
+		args.whisperOptions['outputIn' + capitalize(args.responseFormat)] = true
+	}
+
 	let flags = [
 		args.whisperOptions?.outputInCsv ? '-ocsv ' : '',
 		args.whisperOptions?.outputInJson ? '-oj ' : '',
@@ -49,4 +54,8 @@ const constructOptionsFlags = (args: IOptions): string => {
 	].join('')
 
 	return flags.trim()
+}
+
+function capitalize(s) {
+	return s && String(s[0]).toUpperCase() + String(s).slice(1)
 }
