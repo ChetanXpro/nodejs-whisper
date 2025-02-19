@@ -5,7 +5,7 @@
 import path from 'path'
 import shell from 'shelljs'
 import readlineSync from 'readline-sync'
-import { MODELS_LIST, DEFAULT_MODEL, MODELS } from './constants'
+import { MODELS_LIST, DEFAULT_MODEL, MODELS, WHISPER_CPP_PATH, MODEL_OBJECT } from './constants'
 import fs from 'fs'
 
 const askForModel = async (logger = console): Promise<string> => {
@@ -46,39 +46,39 @@ const askIfUserWantToUseCuda = async (logger = console) => {
 	}
 }
 
-export default async function downloadModel(logger = console) {
+async function downloadModel(logger = console) {
 	try {
-		shell.cd(path.join(__dirname, '..', './cpp/whisper.cpp/models'))
+		shell.cd(path.join(WHISPER_CPP_PATH, 'models'))
 
 		let anyModelExist = []
 
-		MODELS.forEach(model => {
-			if (!fs.existsSync(path.join(__dirname, '..', `./cpp/whisper.cpp/models/${model}`))) {
+		MODELS_LIST.forEach(model => {
+			if (!fs.existsSync(path.join(WHISPER_CPP_PATH, 'models', MODEL_OBJECT[model]))) {
 			} else {
 				anyModelExist.push(model)
 			}
 		})
 
 		if (anyModelExist.length > 0) {
-			return
-			// logger.log('Models already exist. Skipping download.')
-		} else {
-			logger.log('[Nodejs-whisper] Models do not exist. Please Select a model to download.\n')
+			console.log('\n[Nodejs-whisper] Currently installed models:')
+			anyModelExist.forEach(model => console.log(`- ${model}`))
+			console.log('\n[Nodejs-whisper] You can install additional models from the list below.\n')
 		}
 
 		logger.log(`
-| Model     | Disk   | RAM     |
-|-----------|--------|---------|
-| tiny      |  75 MB | ~390 MB |
-| tiny.en   |  75 MB | ~390 MB |
-| base      | 142 MB | ~500 MB |
-| base.en   | 142 MB | ~500 MB |
-| small     | 466 MB | ~1.0 GB |
-| small.en  | 466 MB | ~1.0 GB |
-| medium    | 1.5 GB | ~2.6 GB |
-| medium.en | 1.5 GB | ~2.6 GB |
-| large-v1  | 2.9 GB | ~4.7 GB |
-| large     | 2.9 GB | ~4.7 GB |
+| Model          | Disk   | RAM     |
+|----------------|--------|---------|
+| tiny           |  75 MB | ~390 MB |
+| tiny.en        |  75 MB | ~390 MB |
+| base           | 142 MB | ~500 MB |
+| base.en        | 142 MB | ~500 MB |
+| small          | 466 MB | ~1.0 GB |
+| small.en       | 466 MB | ~1.0 GB |
+| medium         | 1.5 GB | ~2.6 GB |
+| medium.en      | 1.5 GB | ~2.6 GB |
+| large-v1       | 2.9 GB | ~4.7 GB |
+| large          | 2.9 GB | ~4.7 GB |
+| large-v3-turbo | 1.5 GB | ~2.6 GB |
 `)
 
 		if (!shell.which('./download-ggml-model.sh')) {
@@ -100,11 +100,23 @@ export default async function downloadModel(logger = console) {
 
 		const withCuda = await askIfUserWantToUseCuda()
 
-		if (withCuda) {
-			shell.exec('WHISPER_CUDA=1 make -j')
+		let compileCommand: string
+		if (process.platform === 'win32') {
+			// Try mingw32-make first
+			if (shell.which('mingw32-make')) {
+				compileCommand = withCuda ? 'WHISPER_CUDA=1 mingw32-make -j' : 'mingw32-make -j'
+			} else if (shell.which('make')) {
+				compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
+			} else {
+				throw new Error(
+					'[Nodejs-whisper] Neither mingw32-make nor make found. Please install MinGW-w64 or MSYS2.'
+				)
+			}
 		} else {
-			shell.exec('make -j')
+			compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
 		}
+
+		shell.exec(compileCommand)
 
 		process.exit(0)
 	} catch (error) {
@@ -114,4 +126,7 @@ export default async function downloadModel(logger = console) {
 	}
 }
 // run on npx nodejs-whisper download
-downloadModel()
+downloadModel().catch(error => {
+	console.error('Failed to download:', error)
+	process.exit(1)
+})

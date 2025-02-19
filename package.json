@@ -1,6 +1,6 @@
 {
 	"name": "nodejs-whisper",
-	"version": "0.1.15",
+	"version": "0.2.6",
 	"description": "Node bindings for OpenAI's Whisper. Optimized for CPU.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -8,7 +8,7 @@
 		"access": "public"
 	},
 	"bin": {
-		"download": "dist/downloadModel.js"
+		"nodejs-whisper": "dist/downloadModel.js"
 	},
 	"repository": {
 		"type": "git",
@@ -43,13 +43,7 @@
 		"nodejs-whisper",
 		"audio-to-subtitles"
 	],
-	"author": "chetan baliyan",
-	"contributors": [
-		{
-			"name": "Michael Heuberger",
-			"email": "michael.heuberger@binarykitchen.com"
-		}
-	],
+	"author": "chetan",
 	"license": "MIT",
 	"homepage": "https://github.com/ChetanXpro/nodejs-whisper#readme",
 	"bugs": {
@@ -63,13 +57,13 @@
 		"@types/node": "^22.0.0",
 		"@types/readline-sync": "^1.4.4",
 		"@types/shelljs": "^0.8.12",
-		"nodemon": "3.1.7",
+		"nodemon": "3.1.9",
 		"prettier": "^3.0.0",
 		"ts-node": "^10.8.2",
 		"typescript": "^5.1.6"
 	},
 	"files": [
-		"dist",
-		"cpp"
-	]
+    "dist/",
+    "cpp/"
+]
 }

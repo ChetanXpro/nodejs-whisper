@@ -1,3 +1,5 @@
+import path from 'path'
+
 export const MODELS_LIST = [
 	'tiny',
 	'tiny.en',
@@ -9,6 +11,7 @@ export const MODELS_LIST = [
 	'medium.en',
 	'large-v1',
 	'large',
+	'large-v3-turbo',
 ]
 
 export const MODELS = [
@@ -22,6 +25,7 @@ export const MODELS = [
 	'ggml-medium.bin',
 	'ggml-large-v1.bin',
 	'ggml-large.bin',
+	'ggml-large-v3-turbo.bin',
 ]
 
 export const MODEL_OBJECT = {
@@ -35,6 +39,12 @@ export const MODEL_OBJECT = {
 	'medium.en': 'ggml-medium.en.bin',
 	'large-v1': 'ggml-large-v1.bin',
 	large: 'ggml-large.bin',
+	'large-v3-turbo': 'ggml-large-v3-turbo.bin',
 }
 
 export const DEFAULT_MODEL = 'tiny.en'
+
+export const WHISPER_CPP_PATH = path.join(__dirname, '..', 'cpp', 'whisper.cpp')
+
+export const WHISPER_CPP_MAIN_PATH =
+	process.platform === 'win32' ? 'build\\bin\\Release\\whisper-cli.exe' : './build/bin/whisper-cli'

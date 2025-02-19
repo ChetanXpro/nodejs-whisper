@@ -1,7 +1,7 @@
 import path from 'path'
 import shell from 'shelljs'
 import fs from 'fs'
-import { MODELS_LIST, MODELS } from './constants'
+import { MODEL_OBJECT, MODELS_LIST, WHISPER_CPP_PATH } from './constants'
 
 export default async function autoDownloadModel(
 	logger = console,
@@ -19,12 +19,12 @@ export default async function autoDownloadModel(
 	}
 
 	try {
-		const modelDirectory = path.join(__dirname, '..', 'cpp', 'whisper.cpp', 'models')
+		const modelDirectory = path.join(WHISPER_CPP_PATH, 'models')
 		shell.cd(modelDirectory)
-		const modelAlreadyExist = fs.existsSync(path.join(modelDirectory, autoDownloadModelName))
+		const modelAlreadyExist = fs.existsSync(path.join(modelDirectory, MODEL_OBJECT[autoDownloadModelName]))
 
 		if (modelAlreadyExist) {
-			logger.debug(`[Nodejs-whisper] ${autoDownloadModel} already exist. Skipping download.`)
+			logger.debug(`[Nodejs-whisper] ${autoDownloadModelName} already exist. Skipping download.`)
 
 			return 'Models already exist. Skipping download.'
 		}
@@ -47,21 +47,22 @@ export default async function autoDownloadModel(
 		shell.cd('../')
 
 		let compileCommand
-        if (process.platform === 'win32') {
-            // Try mingw32-make first
-            if (shell.which('mingw32-make')) {
-                compileCommand = withCuda ? 'WHISPER_CUDA=1 mingw32-make -j' : 'mingw32-make -j'
-            } else if (shell.which('make')) {
-                compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
-            } else {
-                throw new Error('[Nodejs-whisper] Neither mingw32-make nor make found. Please install MinGW-w64 or MSYS2.')
-            }
-        } else {
-            compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
-        }
+		if (process.platform === 'win32') {
+			// Try mingw32-make first
+			if (shell.which('mingw32-make')) {
+				compileCommand = withCuda ? 'WHISPER_CUDA=1 mingw32-make -j' : 'mingw32-make -j'
+			} else if (shell.which('make')) {
+				compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
+			} else {
+				throw new Error(
+					'[Nodejs-whisper] Neither mingw32-make nor make found. Please install MinGW-w64 or MSYS2.'
+				)
+			}
+		} else {
+			compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
+		}
 
-        const compileResult = shell.exec(compileCommand)
-
+		const compileResult = shell.exec(compileCommand)
 
 		if (compileResult.code !== 0) {
 			throw new Error(`[Nodejs-whisper] Failed to compile model: ${compileResult.stderr}`)
