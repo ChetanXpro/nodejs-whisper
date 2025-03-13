@@ -47,4 +47,4 @@ export const DEFAULT_MODEL = 'tiny.en'
 export const WHISPER_CPP_PATH = path.join(__dirname, '..', 'cpp', 'whisper.cpp')
 
 export const WHISPER_CPP_MAIN_PATH =
-	process.platform === 'win32' ? 'build\\bin\\Release\\whisper-cli.exe' : './build/bin/whisper-cli'
+	process.platform === 'win32' ? 'build\\bin\\whisper-cli.exe' : './build/bin/whisper-cli'
