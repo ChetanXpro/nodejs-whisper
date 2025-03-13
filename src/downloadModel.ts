@@ -8,6 +8,8 @@ import readlineSync from 'readline-sync'
 import { MODELS_LIST, DEFAULT_MODEL, MODELS, WHISPER_CPP_PATH, MODEL_OBJECT } from './constants'
 import fs from 'fs'
 
+shell.config.execPath = shell.which('node').stdout
+
 const askForModel = async (logger = console): Promise<string> => {
 	const answer = await readlineSync.question(
 		`\n[Nodejs-whisper] Enter model name (e.g. 'tiny.en') or 'cancel' to exit\n(ENTER for tiny.en): `

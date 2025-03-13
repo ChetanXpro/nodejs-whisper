@@ -3,6 +3,8 @@ import shell from 'shelljs'
 import fs from 'fs'
 import { MODEL_OBJECT, MODELS_LIST, WHISPER_CPP_PATH } from './constants'
 
+shell.config.execPath = shell.which('node').stdout
+
 export default async function autoDownloadModel(
 	logger = console,
 	autoDownloadModelName?: string,
