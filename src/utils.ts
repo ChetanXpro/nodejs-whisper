@@ -2,6 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import shell from 'shelljs'
 
+shell.config.execPath = shell.which('node').stdout
+
 export const checkIfFileExists = (filePath: string) => {
 	if (!fs.existsSync(filePath)) {
 		throw new Error(`[Nodejs-whisper] Error: No such file: ${filePath}`)
