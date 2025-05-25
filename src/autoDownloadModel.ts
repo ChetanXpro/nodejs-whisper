@@ -25,7 +25,6 @@ export default async function autoDownloadModel(
 
 		if (modelAlreadyExist) {
 			logger.debug(`[Nodejs-whisper] ${autoDownloadModelName} already exist. Skipping download.`)
-
 			return 'Models already exist. Skipping download.'
 		}
 
@@ -43,32 +42,31 @@ export default async function autoDownloadModel(
 			throw new Error(`[Nodejs-whisper] Failed to download model: ${result.stderr}`)
 		}
 
-		logger.debug('[Nodejs-whisper] Attempting to compile model...')
+		logger.debug('[Nodejs-whisper] Model downloaded. Attempting to build whisper.cpp...')
 		shell.cd('../')
 
-		let compileCommand
-		if (process.platform === 'win32') {
-			// Try mingw32-make first
-			if (shell.which('mingw32-make')) {
-				compileCommand = withCuda ? 'WHISPER_CUDA=1 mingw32-make -j' : 'mingw32-make -j'
-			} else if (shell.which('make')) {
-				compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
-			} else {
-				throw new Error(
-					'[Nodejs-whisper] Neither mingw32-make nor make found. Please install MinGW-w64 or MSYS2.'
-				)
-			}
-		} else {
-			compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
+		// Configure CMake build
+		logger.debug('[Nodejs-whisper] Configuring CMake build...')
+		let configureCommand = 'cmake -B build'
+		if (withCuda) {
+			configureCommand += ' -DGGML_CUDA=1'
 		}
 
-		const compileResult = shell.exec(compileCommand)
-
-		if (compileResult.code !== 0) {
-			throw new Error(`[Nodejs-whisper] Failed to compile model: ${compileResult.stderr}`)
+		const configResult = shell.exec(configureCommand)
+		if (configResult.code !== 0) {
+			throw new Error(`[Nodejs-whisper] CMake configuration failed: ${configResult.stderr}`)
 		}
 
-		return 'Model downloaded and compiled successfully'
+		// Build the project
+		logger.debug('[Nodejs-whisper] Building whisper.cpp...')
+		const buildCommand = 'cmake --build build --config Release'
+		const buildResult = shell.exec(buildCommand)
+
+		if (buildResult.code !== 0) {
+			throw new Error(`[Nodejs-whisper] Build failed: ${buildResult.stderr}`)
+		}
+
+		return 'Model downloaded and built successfully'
 	} catch (error) {
 		logger.error('[Nodejs-whisper] Error caught in autoDownloadModel:', error)
 		shell.cd(projectDir)

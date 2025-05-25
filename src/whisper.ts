@@ -1,5 +1,8 @@
 import shell from 'shelljs'
-import { WHISPER_CPP_PATH, WHISPER_CPP_MAIN_PATH } from './constants'
+import path from 'path'
+import fs from 'fs'
+
+import { WHISPER_CPP_PATH } from './constants'
 
 const projectDir = process.cwd()
 
@@ -19,16 +22,64 @@ function handleError(error: Error, logger = console) {
 	throw error
 }
 
+// Get the correct executable path based on platform and build system
+function getWhisperExecutablePath(): string {
+	const execName = process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
+
+	// Check common CMake build locations
+	const possiblePaths = [
+		path.join(WHISPER_CPP_PATH, 'build', 'bin', execName), // Unix CMake
+		path.join(WHISPER_CPP_PATH, 'build', 'bin', 'Release', execName), // Windows CMake Release
+		path.join(WHISPER_CPP_PATH, 'build', 'bin', 'Debug', execName), // Windows CMake Debug
+		path.join(WHISPER_CPP_PATH, 'build', execName), // Alternative location
+		path.join(WHISPER_CPP_PATH, execName), // Root directory
+	]
+
+	for (const execPath of possiblePaths) {
+		if (fs.existsSync(execPath)) {
+			return execPath
+		}
+	}
+
+	return '' // Not found
+}
+
+// Check if whisper-cli executable exists
+function checkExecutableExists(logger = console): boolean {
+	const execPath = getWhisperExecutablePath()
+	const exists = execPath !== ''
+
+	if (exists) {
+		logger.debug(`[Nodejs-whisper] Found executable at: ${execPath}`)
+	} else {
+		logger.debug('[Nodejs-whisper] Executable not found in any expected location')
+	}
+
+	return exists
+}
+
+// Check if build directory exists and has been configured
+function isBuildConfigured(): boolean {
+	const buildDir = path.join(WHISPER_CPP_PATH, 'build')
+	const cmakeCache = path.join(buildDir, 'CMakeCache.txt')
+	return fs.existsSync(buildDir) && fs.existsSync(cmakeCache)
+}
+
 export async function whisperShell(
 	command: string,
 	options: IShellOptions = defaultShellOptions,
 	logger = console
 ): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
-		shell.exec(command, options, (code, stdout, stderr) => {
-			logger.debug('code---', code)
-			logger.debug('stdout---', stdout)
-			logger.debug('stderr---', stderr)
+		const shellOptions = {
+			...options,
+			windowsHide: true, // Prevent command window popup on Windows
+		}
+
+		shell.exec(command, shellOptions, (code, stdout, stderr) => {
+			logger.debug('Exit code:', code)
+			logger.debug('Stdout:', stdout)
+			logger.debug('Stderr:', stderr)
 
 			if (code === 0) {
 				if (stdout.includes('error:')) {
@@ -37,37 +88,68 @@ export async function whisperShell(
 				}
 
 				logger.debug('[Nodejs-whisper] Transcribing Done!')
-
 				resolve(stdout)
 			} else {
-				reject(new Error(stderr))
+				reject(new Error(stderr || `Command failed with exit code ${code}`))
 			}
 		})
 	}).catch((error: Error) => {
-		handleError(error)
+		handleError(error, logger)
 		return Promise.reject(error)
 	})
 }
 
-export async function executeCppCommand(command: string, logger = console, withCuda: boolean): Promise<string> {
+export async function executeCppCommand(command: string, logger = console, withCuda: boolean = false): Promise<string> {
 	try {
 		shell.cd(WHISPER_CPP_PATH)
-		if (!shell.which(WHISPER_CPP_MAIN_PATH.replace(/\\/g, '/'))) {
-			logger.debug('[Nodejs-whisper] whisper.cpp not initialized.')
 
-			const makeCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
-			shell.exec(makeCommand)
+		// Check if executable already exists
+		if (!checkExecutableExists(logger)) {
+			logger.debug('[Nodejs-whisper] whisper-cli executable not found. Building...')
 
-			if (!shell.which(WHISPER_CPP_MAIN_PATH.replace(/\\/g, '/'))) {
+			// Configure build if not already configured
+			if (!isBuildConfigured()) {
+				logger.debug('[Nodejs-whisper] Configuring CMake build...')
+
+				let configureCommand = 'cmake -B build'
+				if (withCuda) {
+					configureCommand += ' -DGGML_CUDA=1'
+				}
+
+				const configResult = shell.exec(configureCommand)
+				if (configResult.code !== 0) {
+					throw new Error(`[Nodejs-whisper] CMake configuration failed: ${configResult.stderr}`)
+				}
+
+				logger.debug('[Nodejs-whisper] CMake configuration completed.')
+			} else {
+				logger.debug('[Nodejs-whisper] Build already configured.')
+			}
+
+			// Build the project
+			logger.debug('[Nodejs-whisper] Building whisper.cpp...')
+			const buildCommand = 'cmake --build build --config Release'
+			const buildResult = shell.exec(buildCommand)
+
+			if (buildResult.code !== 0) {
+				throw new Error(`[Nodejs-whisper] Build failed: ${buildResult.stderr}`)
+			}
+
+			// Verify executable was created
+			if (!checkExecutableExists(logger)) {
 				throw new Error(
-					"[Nodejs-whisper] 'make' command failed. Please run 'make' command in /whisper.cpp directory."
+					'[Nodejs-whisper] Build completed but executable not found. Please check the build output for errors.'
 				)
 			}
 
-			logger.log("[Nodejs-whisper] 'make' command successful.")
+			logger.log('[Nodejs-whisper] Build completed successfully.')
+		} else {
+			logger.debug('[Nodejs-whisper] whisper-cli executable found. Skipping build.')
 		}
+
 		return await whisperShell(command, defaultShellOptions, logger)
 	} catch (error) {
-		handleError(error as Error)
+		handleError(error as Error, logger)
+		throw error
 	}
 }
