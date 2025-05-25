@@ -1,8 +1,29 @@
 import path from 'path'
-
 import fs from 'fs'
-import { MODELS_LIST, MODEL_OBJECT, WHISPER_CPP_PATH, WHISPER_CPP_MAIN_PATH } from './constants'
+import { MODELS_LIST, MODEL_OBJECT, WHISPER_CPP_PATH } from './constants'
 import { IOptions } from '.'
+
+// Get the correct executable path based on platform and build system
+function getExecutablePath(): string {
+	const execName = process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
+
+	// Check common CMake build locations
+	const possiblePaths = [
+		path.join(WHISPER_CPP_PATH, 'build', 'bin', execName), // Unix CMake
+		path.join(WHISPER_CPP_PATH, 'build', 'bin', 'Release', execName), // Windows CMake Release
+		path.join(WHISPER_CPP_PATH, 'build', 'bin', 'Debug', execName), // Windows CMake Debug
+		path.join(WHISPER_CPP_PATH, 'build', execName), // Alternative location
+		path.join(WHISPER_CPP_PATH, execName), // Root directory
+	]
+
+	for (const execPath of possiblePaths) {
+		if (fs.existsSync(execPath)) {
+			return execPath
+		}
+	}
+
+	return '' // Not found
+}
 
 export const constructCommand = (filePath: string, args: IOptions): string => {
 	let errors: string[] = []
@@ -26,8 +47,26 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 		throw new Error(errors.join('\n'))
 	}
 
+	// Get the actual executable path
+	const executablePath = getExecutablePath()
+	if (!executablePath) {
+		throw new Error('[Nodejs-whisper] Error: whisper-cli executable not found')
+	}
+
 	const modelName = MODEL_OBJECT[args.modelName as keyof typeof MODEL_OBJECT]
-	let command = `${WHISPER_CPP_MAIN_PATH} ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language ? args.whisperOptions?.language : 'auto'} -m "./models/${modelName}"  -f "${filePath}"`
+
+	// Construct command with proper path escaping
+	const escapeArg = (arg: string) => {
+		if (process.platform === 'win32') {
+			return `"${arg.replace(/"/g, '\\"')}"`
+		}
+		return `"${arg}"`
+	}
+
+	// Use relative model path from whisper.cpp directory
+	const modelArg = `./models/${modelName}`
+
+	let command = `${escapeArg(executablePath)} ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language || 'auto'} -m ${escapeArg(modelArg)} -f ${escapeArg(filePath)}`
 
 	return command
 }

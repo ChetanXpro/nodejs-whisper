@@ -7,7 +7,6 @@ import shell from 'shelljs'
 import readlineSync from 'readline-sync'
 import { MODELS_LIST, DEFAULT_MODEL, MODELS, WHISPER_CPP_PATH, MODEL_OBJECT } from './constants'
 import fs from 'fs'
-
 const askForModel = async (logger = console): Promise<string> => {
 	const answer = await readlineSync.question(
 		`\n[Nodejs-whisper] Enter model name (e.g. 'tiny.en') or 'cancel' to exit\n(ENTER for tiny.en): `
@@ -88,35 +87,27 @@ async function downloadModel(logger = console) {
 		const modelName = await askForModel()
 
 		let scriptPath = './download-ggml-model.sh'
-
 		if (process.platform === 'win32') scriptPath = 'download-ggml-model.cmd'
 
 		shell.chmod('+x', scriptPath)
 		shell.exec(`${scriptPath} ${modelName}`)
 
-		logger.log('[Nodejs-whisper] Attempting to compile model...\n')
-
+		logger.log('[Nodejs-whisper] Attempting to build whisper.cpp...\n')
 		shell.cd('../')
 
 		const withCuda = await askIfUserWantToUseCuda()
 
-		let compileCommand: string
-		if (process.platform === 'win32') {
-			// Try mingw32-make first
-			if (shell.which('mingw32-make')) {
-				compileCommand = withCuda ? 'WHISPER_CUDA=1 mingw32-make -j' : 'mingw32-make -j'
-			} else if (shell.which('make')) {
-				compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
-			} else {
-				throw new Error(
-					'[Nodejs-whisper] Neither mingw32-make nor make found. Please install MinGW-w64 or MSYS2.'
-				)
-			}
-		} else {
-			compileCommand = withCuda ? 'WHISPER_CUDA=1 make -j' : 'make -j'
+		// Use CMake instead of make
+		logger.log('[Nodejs-whisper] Configuring CMake build...')
+		let configureCommand = 'cmake -B build'
+		if (withCuda) {
+			configureCommand += ' -DGGML_CUDA=1'
 		}
 
-		shell.exec(compileCommand)
+		shell.exec(configureCommand)
+
+		logger.log('[Nodejs-whisper] Building with CMake...')
+		shell.exec('cmake --build build --config Release')
 
 		process.exit(0)
 	} catch (error) {
@@ -125,8 +116,3 @@ async function downloadModel(logger = console) {
 		return error
 	}
 }
-// run on npx nodejs-whisper download
-downloadModel().catch(error => {
-	console.error('Failed to download:', error)
-	process.exit(1)
-})
