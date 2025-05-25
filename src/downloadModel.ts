@@ -60,9 +60,9 @@ async function downloadModel(logger: Logger = console) {
 		})
 
 		if (anyModelExist.length > 0) {
-			console.log('\n[Nodejs-whisper] Currently installed models:')
-			anyModelExist.forEach(model => console.log(`- ${model}`))
-			console.log('\n[Nodejs-whisper] You can install additional models from the list below.\n')
+			logger.log('\n[Nodejs-whisper] Currently installed models:')
+			anyModelExist.forEach(model => logger.log(`- ${model}`))
+			logger.log('\n[Nodejs-whisper] You can install additional models from the list below.\n')
 		}
 
 		logger.log(`

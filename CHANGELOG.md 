@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed CLI download command not executing (missing function call)
 - `npx nodejs-whisper download` now works as expected
 - Fixed restrictive Console logger type that didn't work with popular loggers like Pino, Winston ([#158](https://github.com/ChetanXpro/nodejs-whisper/issues/158))
+- Fixed inconsistent console usage in downloadModel.ts, now properly uses logger parameter ([#157](https://github.com/ChetanXpro/nodejs-whisper/issues/157))
 
 ### Changed
 - Replaced Console type with flexible Logger interface for better logger compatibility
+- Updated all internal logging to use logger parameter instead of direct console calls
 
 
 ---
