@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import shell from 'shelljs'
+import { Logger } from './types'
 
 export const checkIfFileExists = (filePath: string) => {
 	if (!fs.existsSync(filePath)) {
@@ -28,7 +29,7 @@ async function isValidWavHeader(filePath) {
 	})
 }
 
-export const convertToWavType = async (inputFilePath, logger = console) => {
+export const convertToWavType = async (inputFilePath: string, logger: Logger = console) => {
 	const fileExtension = path.extname(inputFilePath).toLowerCase()
 
 	logger.debug(`[Nodejs-whisper] Checking if the file is a valid WAV: ${inputFilePath}`)

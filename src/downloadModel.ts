@@ -7,7 +7,8 @@ import shell from 'shelljs'
 import readlineSync from 'readline-sync'
 import { MODELS_LIST, DEFAULT_MODEL, MODELS, WHISPER_CPP_PATH, MODEL_OBJECT } from './constants'
 import fs from 'fs'
-const askForModel = async (logger = console): Promise<string> => {
+import { Logger } from './types'
+const askForModel = async (logger: Logger = console): Promise<string> => {
 	const answer = await readlineSync.question(
 		`\n[Nodejs-whisper] Enter model name (e.g. 'tiny.en') or 'cancel' to exit\n(ENTER for tiny.en): `
 	)
@@ -31,7 +32,7 @@ const askForModel = async (logger = console): Promise<string> => {
 	return answer
 }
 
-const askIfUserWantToUseCuda = async (logger = console) => {
+const askIfUserWantToUseCuda = async (logger: Logger = console) => {
 	const answer = await readlineSync.question(
 		`\n[Nodejs-whisper] Do you want to use CUDA for compilation? (y/n)\n(ENTER for n): `
 	)
@@ -45,7 +46,7 @@ const askIfUserWantToUseCuda = async (logger = console) => {
 	}
 }
 
-async function downloadModel(logger = console) {
+async function downloadModel(logger: Logger = console) {
 	try {
 		shell.cd(path.join(WHISPER_CPP_PATH, 'models'))
 

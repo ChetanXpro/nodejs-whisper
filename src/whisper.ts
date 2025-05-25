@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 
 import { WHISPER_CPP_PATH } from './constants'
+import { Logger } from './types'
 
 const projectDir = process.cwd()
 
@@ -16,7 +17,7 @@ const defaultShellOptions: IShellOptions = {
 	async: true,
 }
 
-function handleError(error: Error, logger = console) {
+function handleError(error: Error, logger: Logger = console) {
 	logger.error('[Nodejs-whisper] Error:', error.message)
 	shell.cd(projectDir)
 	throw error
@@ -45,7 +46,7 @@ function getWhisperExecutablePath(): string {
 }
 
 // Check if whisper-cli executable exists
-function checkExecutableExists(logger = console): boolean {
+function checkExecutableExists(logger: Logger = console): boolean {
 	const execPath = getWhisperExecutablePath()
 	const exists = execPath !== ''
 
@@ -68,7 +69,7 @@ function isBuildConfigured(): boolean {
 export async function whisperShell(
 	command: string,
 	options: IShellOptions = defaultShellOptions,
-	logger = console
+	logger: Logger = console
 ): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
 		const shellOptions = {
@@ -99,7 +100,11 @@ export async function whisperShell(
 	})
 }
 
-export async function executeCppCommand(command: string, logger = console, withCuda: boolean = false): Promise<string> {
+export async function executeCppCommand(
+	command: string,
+	logger: Logger = console,
+	withCuda: boolean = false
+): Promise<string> {
 	try {
 		shell.cd(WHISPER_CPP_PATH)
 

@@ -1,4 +1,4 @@
-import { WhisperOptions } from './types'
+import { Logger, WhisperOptions } from './types'
 import { executeCppCommand } from './whisper'
 import fs from 'fs'
 import { constructCommand } from './WhisperHelper'
@@ -11,7 +11,7 @@ export interface IOptions {
 	whisperOptions?: WhisperOptions
 	withCuda?: boolean
 	removeWavFileAfterTranscription?: boolean
-	logger?: Console
+	logger?: Logger
 }
 
 export async function nodewhisper(filePath: string, options: IOptions) {
