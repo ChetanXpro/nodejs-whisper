@@ -9,23 +9,33 @@ export const checkIfFileExists = (filePath: string) => {
 	}
 }
 
-async function isValidWavHeader(filePath) {
+async function isValidWavHeader(filePath: string): Promise<boolean> {
 	return new Promise((resolve, reject) => {
-		const readable = fs.createReadStream(filePath, { end: 11 })
-		let data = ''
+		const readable = fs.createReadStream(filePath, { end: 43 })
+		let data = Buffer.alloc(0)
 
-		readable.on('data', chunk => {
-			data += chunk.toString('binary')
+		readable.on('data', (chunk: Buffer) => {
+			data = Buffer.concat([data, chunk])
 		})
 
 		readable.on('end', () => {
-			const isValid = data.startsWith('RIFF') || data.startsWith('RIFX')
-			resolve(isValid)
+			const isWav = data.toString('binary', 0, 4) === 'RIFF' || data.toString('binary', 0, 4) === 'RIFX'
+
+			if (!isWav) {
+				resolve(false)
+				return
+			}
+
+			if (data.length >= 28) {
+				const sampleRate = data.readUInt32LE(24)
+
+				resolve(sampleRate === 16000)
+			} else {
+				resolve(false)
+			}
 		})
 
-		readable.on('error', err => {
-			reject(err)
-		})
+		readable.on('error', err => reject(err))
 	})
 }
 
@@ -43,12 +53,15 @@ export const convertToWavType = async (inputFilePath: string, logger: Logger = c
 		} else {
 			logger.debug(`[Nodejs-whisper] File has a .wav extension but is not a valid WAV, overwriting...`)
 
-			// Overwrite the original WAV file
-			const command = `ffmpeg -nostats -loglevel error -y -i "${inputFilePath}" -ar 16000 -ac 1 -c:a pcm_s16le "${inputFilePath}"`
+			// Use a temporary file to avoid overwrite conflicts
+			const tempFile = inputFilePath + '.temp.wav'
+			const command = `ffmpeg -nostats -loglevel error -y -i "${inputFilePath}" -ar 16000 -ac 1 -c:a pcm_s16le "${tempFile}"`
 			const result = shell.exec(command)
 			if (result.code !== 0) {
 				throw new Error(`[Nodejs-whisper] Failed to convert audio file: ${result.stderr}`)
 			}
+
+			fs.renameSync(tempFile, inputFilePath)
 			return inputFilePath
 		}
 	} else {
