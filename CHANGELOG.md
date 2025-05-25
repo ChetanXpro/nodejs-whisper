@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `npx nodejs-whisper download` now works as expected
 - Fixed restrictive Console logger type that didn't work with popular loggers like Pino, Winston ([#158](https://github.com/ChetanXpro/nodejs-whisper/issues/158))
 - Fixed inconsistent console usage in downloadModel.ts, now properly uses logger parameter ([#157](https://github.com/ChetanXpro/nodejs-whisper/issues/157))
+- Fixed WAV validation that incorrectly reported non-16kHz files as valid ([#113](https://github.com/ChetanXpro/nodejs-whisper/issues/113))
+- WAV files with incorrect sample rates are now automatically converted to 16kHz
+- Eliminates "WAV file must be 16 kHz" errors from whisper.cpp
 
 ### Changed
 - Replaced Console type with flexible Logger interface for better logger compatibility
