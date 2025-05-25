@@ -116,3 +116,7 @@ async function downloadModel(logger = console) {
 		return error
 	}
 }
+downloadModel().catch(error => {
+	console.error('Failed to download:', error)
+	process.exit(1)
+})
