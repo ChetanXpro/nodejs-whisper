@@ -2,9 +2,10 @@ import path from 'path'
 import shell from 'shelljs'
 import fs from 'fs'
 import { MODEL_OBJECT, MODELS_LIST, WHISPER_CPP_PATH } from './constants'
+import { Logger } from './types'
 
 export default async function autoDownloadModel(
-	logger = console,
+	logger: Logger = console,
 	autoDownloadModelName?: string,
 	withCuda: boolean = false
 ) {

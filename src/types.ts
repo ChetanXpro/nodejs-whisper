@@ -13,3 +13,9 @@ export interface WhisperOptions {
 	wordTimestamps?: boolean
 	splitOnWord?: boolean
 }
+
+export interface Logger {
+	debug: (...args: any[]) => void
+	error: (...args: any[]) => void
+	log: (...args: any[]) => void
+}
