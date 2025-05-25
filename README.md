@@ -68,10 +68,10 @@ const filePath = path.resolve(__dirname, 'YourAudioFileName')
 
 await nodewhisper(filePath, {
 	modelName: 'base.en', //Downloaded models name
-	autoDownloadModelName: 'base.en', // (optional) autodownload a model if model is not present
+	autoDownloadModelName: 'base.en', // (optional) auto download a model if model is not present
 	removeWavFileAfterTranscription: false, // (optional) remove wav file once transcribed
-	withCuda: false // (optional) use cuda for faster processing
-	logger: console // (optional) Logging instance, defaults to console
+	withCuda: false, // (optional) use cuda for faster processing
+	logger: console, // (optional) Logging instance, defaults to console
 	whisperOptions: {
 		outputInCsv: false, // get output result in csv file
 		outputInJson: false, // get output result in json file
