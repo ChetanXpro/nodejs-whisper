@@ -156,5 +156,7 @@ export async function executeCppCommand(
 	} catch (error) {
 		handleError(error as Error, logger)
 		throw error
+	} finally {
+		shell.cd(projectDir)
 	}
 }
