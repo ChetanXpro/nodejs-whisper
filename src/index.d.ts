@@ -7,6 +7,7 @@ export interface WhisperOptions {
 	timestamps_length?: number
 	wordTimestamps?: boolean
 	splitOnWord?: boolean
+	noGpu?: boolean
 }
 
 export interface IOptions {

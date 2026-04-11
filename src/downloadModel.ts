@@ -8,6 +8,7 @@ import readlineSync from 'readline-sync'
 import { MODELS_LIST, DEFAULT_MODEL, MODELS, WHISPER_CPP_PATH, MODEL_OBJECT } from './constants'
 import fs from 'fs'
 import { Logger } from './types'
+import { getCmakeConfigureCommand } from './buildConfig'
 const askForModel = async (logger: Logger = console): Promise<string> => {
 	const answer = await readlineSync.question(
 		`\n[Nodejs-whisper] Enter model name (e.g. 'tiny.en') or 'cancel' to exit\n(ENTER for tiny.en): `
@@ -47,6 +48,8 @@ const askIfUserWantToUseCuda = async (logger: Logger = console) => {
 }
 
 async function downloadModel(logger: Logger = console) {
+	const projectDir = process.cwd()
+
 	try {
 		shell.cd(path.join(WHISPER_CPP_PATH, 'models'))
 
@@ -83,14 +86,13 @@ async function downloadModel(logger: Logger = console) {
 
 		const downloaderScript = process.platform === 'win32' ? 'download-ggml-model.cmd' : './download-ggml-model.sh'
 
-		if (!shell.which(downloaderScript)) {
+		if (!shell.test('-f', downloaderScript)) {
 			throw '[Nodejs-whisper] Error: Downloader not found.\n'
 		}
 
 		const modelName = await askForModel()
 
-		let scriptPath = downloaderScript
-		if (process.platform === 'win32') scriptPath = 'download-ggml-model.cmd'
+		const scriptPath = downloaderScript
 
 		shell.chmod('+x', scriptPath)
 		shell.exec(`${scriptPath} ${modelName}`)
@@ -102,21 +104,18 @@ async function downloadModel(logger: Logger = console) {
 
 		// Use CMake instead of make
 		logger.log('[Nodejs-whisper] Configuring CMake build...')
-		let configureCommand = 'cmake -B build'
-		if (withCuda) {
-			configureCommand += ' -DGGML_CUDA=1'
-		}
+		const configureCommand = getCmakeConfigureCommand(withCuda)
 
 		shell.exec(configureCommand)
 
 		logger.log('[Nodejs-whisper] Building with CMake...')
 		shell.exec('cmake --build build --config Release')
-
-		process.exit(0)
 	} catch (error) {
 		logger.error('[Nodejs-whisper] Error Caught in downloadModel\n')
 		logger.error(error)
-		return error
+		throw error
+	} finally {
+		shell.cd(projectDir)
 	}
 }
 downloadModel().catch(error => {

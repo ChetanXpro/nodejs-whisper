@@ -3,6 +3,7 @@ import shell from 'shelljs'
 import fs from 'fs'
 import { MODEL_OBJECT, MODELS_LIST, WHISPER_CPP_PATH } from './constants'
 import { Logger } from './types'
+import { getCmakeConfigureCommand } from './buildConfig'
 
 export default async function autoDownloadModel(
 	logger: Logger = console,
@@ -48,10 +49,7 @@ export default async function autoDownloadModel(
 
 		// Configure CMake build
 		logger.debug('[Nodejs-whisper] Configuring CMake build...')
-		let configureCommand = 'cmake -B build'
-		if (withCuda) {
-			configureCommand += ' -DGGML_CUDA=1'
-		}
+		const configureCommand = getCmakeConfigureCommand(withCuda)
 
 		const configResult = shell.exec(configureCommand)
 		if (configResult.code !== 0) {
@@ -70,7 +68,8 @@ export default async function autoDownloadModel(
 		return 'Model downloaded and built successfully'
 	} catch (error) {
 		logger.error('[Nodejs-whisper] Error caught in autoDownloadModel:', error)
-		shell.cd(projectDir)
 		throw error
+	} finally {
+		shell.cd(projectDir)
 	}
 }

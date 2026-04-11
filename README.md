@@ -85,6 +85,7 @@ await nodewhisper(filePath, {
 		wordTimestamps: false, // word-level timestamps
 		timestamps_length: 20, // amount of dialogue per timestamp pair
 		splitOnWord: true, // split on word rather than on token
+		noGpu: false, // disable GPU inference
 	},
 })
 
@@ -102,6 +103,12 @@ const MODELS_LIST = [
 	'large',
 	'large-v3-turbo',
 ]
+```
+
+Custom CMake flags can be passed with `NODEJS_WHISPER_CMAKE_ARGS`.
+
+```bash
+NODEJS_WHISPER_CMAKE_ARGS="-DGGML_NATIVE=OFF" npm test
 ```
 
 ## Types
@@ -129,6 +136,7 @@ const MODELS_LIST = [
 	timestamps_length?: number
 	wordTimestamps?: boolean
 	splitOnWord?: boolean
+	noGpu?: boolean
 }
 
 ```

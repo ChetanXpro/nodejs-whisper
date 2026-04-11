@@ -14,6 +14,7 @@ async function convert() {
 			autoDownloadModelName: 'tiny.en',
 			whisperOptions: {
 				outputInVtt: true,
+				noGpu: true,
 				// Default is 20 which is too long
 				timestamps_length: 14,
 			},

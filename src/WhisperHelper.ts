@@ -85,6 +85,7 @@ const constructOptionsFlags = (args: IOptions): string => {
 		args.whisperOptions?.wordTimestamps ? '-ml 1 ' : '',
 		args.whisperOptions?.timestamps_length ? `-ml ${args.whisperOptions.timestamps_length} ` : '',
 		args.whisperOptions?.splitOnWord ? '-sow true ' : '',
+		args.whisperOptions?.noGpu ? '-ng ' : '',
 	].join('')
 
 	return flags.trim()

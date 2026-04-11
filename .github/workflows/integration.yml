@@ -28,4 +28,6 @@ jobs:
       run: npm ci
 
     - name: Run tests
+      env:
+        NODEJS_WHISPER_CMAKE_ARGS: ${{ runner.os == 'macOS' && '-DGGML_NATIVE=OFF' || '' }}
       run: npm test

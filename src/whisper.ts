@@ -4,8 +4,7 @@ import fs from 'fs'
 
 import { WHISPER_CPP_PATH } from './constants'
 import { Logger } from './types'
-
-const projectDir = process.cwd()
+import { getCmakeConfigureCommand } from './buildConfig'
 
 export interface IShellOptions {
 	silent: boolean
@@ -17,7 +16,7 @@ const defaultShellOptions: IShellOptions = {
 	async: true,
 }
 
-function handleError(error: Error, logger: Logger = console) {
+function handleError(error: Error, logger: Logger = console, projectDir: string = process.cwd()) {
 	logger.error('[Nodejs-whisper] Error:', error.message)
 	shell.cd(projectDir)
 	throw error
@@ -69,7 +68,8 @@ function isBuildConfigured(): boolean {
 export async function whisperShell(
 	command: string,
 	options: IShellOptions = defaultShellOptions,
-	logger: Logger = console
+	logger: Logger = console,
+	projectDir: string = process.cwd()
 ): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
 		const shellOptions = {
@@ -95,7 +95,7 @@ export async function whisperShell(
 			}
 		})
 	}).catch((error: Error) => {
-		handleError(error, logger)
+		handleError(error, logger, projectDir)
 		return Promise.reject(error)
 	})
 }
@@ -105,6 +105,8 @@ export async function executeCppCommand(
 	logger: Logger = console,
 	withCuda: boolean = false
 ): Promise<string> {
+	const projectDir = process.cwd()
+
 	try {
 		shell.cd(WHISPER_CPP_PATH)
 
@@ -116,10 +118,7 @@ export async function executeCppCommand(
 			if (!isBuildConfigured()) {
 				logger.debug('[Nodejs-whisper] Configuring CMake build...')
 
-				let configureCommand = 'cmake -B build'
-				if (withCuda) {
-					configureCommand += ' -DGGML_CUDA=1'
-				}
+				const configureCommand = getCmakeConfigureCommand(withCuda)
 
 				const configResult = shell.exec(configureCommand)
 				if (configResult.code !== 0) {
@@ -152,9 +151,9 @@ export async function executeCppCommand(
 			logger.debug('[Nodejs-whisper] whisper-cli executable found. Skipping build.')
 		}
 
-		return await whisperShell(command, defaultShellOptions, logger)
+		return await whisperShell(command, defaultShellOptions, logger, projectDir)
 	} catch (error) {
-		handleError(error as Error, logger)
+		handleError(error as Error, logger, projectDir)
 		throw error
 	} finally {
 		shell.cd(projectDir)
