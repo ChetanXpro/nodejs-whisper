@@ -7,6 +7,7 @@ import autoDownloadModel from './autoDownloadModel'
 
 export interface IOptions {
 	modelName: string
+	modelRootPath?: string
 	autoDownloadModelName?: string
 	whisperOptions?: WhisperOptions
 	withCuda?: boolean

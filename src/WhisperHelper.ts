@@ -27,6 +27,7 @@ function getExecutablePath(): string {
 
 export const constructCommand = (filePath: string, args: IOptions): string => {
 	let errors: string[] = []
+	const modelName = MODEL_OBJECT[args.modelName as keyof typeof MODEL_OBJECT]
 
 	if (!args.modelName) {
 		errors.push('[Nodejs-whisper] Error: Provide model name')
@@ -36,10 +37,17 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 		errors.push(`[Nodejs-whisper] Error: Enter a valid model name. Available models are: ${MODELS_LIST.join(', ')}`)
 	}
 
-	const modelPath = path.join(WHISPER_CPP_PATH, 'models', MODEL_OBJECT[args.modelName])
+	if (errors.length > 0) {
+		throw new Error(errors.join('\n'))
+	}
+
+	const modelPath = args.modelRootPath
+		? path.resolve(args.modelRootPath, modelName)
+		: path.join(WHISPER_CPP_PATH, 'models', modelName)
+
 	if (!fs.existsSync(modelPath)) {
 		errors.push(
-			'[Nodejs-whisper] Error: Model file does not exist. Please ensure the model is downloaded and correctly placed.'
+			`[Nodejs-whisper] Error: Model file does not exist at ${modelPath}. Please ensure the model is downloaded and correctly placed.`
 		)
 	}
 
@@ -53,8 +61,6 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 		throw new Error('[Nodejs-whisper] Error: whisper-cli executable not found')
 	}
 
-	const modelName = MODEL_OBJECT[args.modelName as keyof typeof MODEL_OBJECT]
-
 	// Construct command with proper path escaping
 	const escapeArg = (arg: string) => {
 		if (process.platform === 'win32') {
@@ -63,8 +69,7 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 		return `"${arg}"`
 	}
 
-	// Use relative model path from whisper.cpp directory
-	const modelArg = `./models/${modelName}`
+	const modelArg = args.modelRootPath ? modelPath : `./models/${modelName}`
 
 	let command = `${escapeArg(executablePath)} ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language || 'auto'} -m ${escapeArg(modelArg)} -f ${escapeArg(filePath)}`
 

@@ -68,6 +68,7 @@ const filePath = path.resolve(__dirname, 'YourAudioFileName')
 
 await nodewhisper(filePath, {
 	modelName: 'base.en', //Downloaded models name
+	modelRootPath: '/path/to/whisper/models', // (optional) directory containing the selected ggml model file
 	autoDownloadModelName: 'base.en', // (optional) auto download a model if model is not present
 	removeWavFileAfterTranscription: false, // (optional) remove wav file once transcribed
 	withCuda: false, // (optional) use cuda for faster processing
@@ -116,6 +117,7 @@ NODEJS_WHISPER_CMAKE_ARGS="-DGGML_NATIVE=OFF" npm test
 ```
  interface IOptions {
 	modelName: string
+	modelRootPath?: string
 	removeWavFileAfterTranscription?: boolean
 	withCuda?: boolean
 	autoDownloadModelName?: string

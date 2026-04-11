@@ -12,6 +12,7 @@ export interface WhisperOptions {
 
 export interface IOptions {
 	modelName: string
+	modelRootPath?: string
 	autoDownloadModelName?: string
 	whisperOptions?: WhisperOptions
 	withCuda?: boolean
