@@ -8,7 +8,8 @@ import { getCmakeConfigureCommand } from './buildConfig'
 export default async function autoDownloadModel(
 	logger: Logger = console,
 	autoDownloadModelName?: string,
-	withCuda: boolean = false
+	withCuda: boolean = false,
+	modelRootPath?: string
 ) {
 	const projectDir = process.cwd()
 
@@ -22,8 +23,11 @@ export default async function autoDownloadModel(
 
 	try {
 		const modelDirectory = path.join(WHISPER_CPP_PATH, 'models')
+		const downloadDirectory = modelRootPath ? path.resolve(modelRootPath) : modelDirectory
+
+		fs.mkdirSync(downloadDirectory, { recursive: true })
 		shell.cd(modelDirectory)
-		const modelAlreadyExist = fs.existsSync(path.join(modelDirectory, MODEL_OBJECT[autoDownloadModelName]))
+		const modelAlreadyExist = fs.existsSync(path.join(downloadDirectory, MODEL_OBJECT[autoDownloadModelName]))
 
 		if (modelAlreadyExist) {
 			logger.debug(`[Nodejs-whisper] ${autoDownloadModelName} already exist. Skipping download.`)
@@ -38,14 +42,15 @@ export default async function autoDownloadModel(
 		}
 
 		shell.chmod('+x', scriptPath)
-		const result = shell.exec(`${scriptPath} ${autoDownloadModelName}`)
+		const downloadPathArg = modelRootPath ? ` ${quoteShellArg(downloadDirectory)}` : ''
+		const result = shell.exec(`${scriptPath} ${autoDownloadModelName}${downloadPathArg}`)
 
 		if (result.code !== 0) {
 			throw new Error(`[Nodejs-whisper] Failed to download model: ${result.stderr}`)
 		}
 
 		logger.debug('[Nodejs-whisper] Model downloaded. Attempting to build whisper.cpp...')
-		shell.cd('../')
+		shell.cd(WHISPER_CPP_PATH)
 
 		// Configure CMake build
 		logger.debug('[Nodejs-whisper] Configuring CMake build...')
@@ -72,4 +77,12 @@ export default async function autoDownloadModel(
 	} finally {
 		shell.cd(projectDir)
 	}
+}
+
+function quoteShellArg(arg: string): string {
+	if (process.platform === 'win32') {
+		return arg
+	}
+
+	return `"${arg.replace(/"/g, '\\"')}"`
 }

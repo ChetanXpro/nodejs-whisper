@@ -112,6 +112,28 @@ Custom CMake flags can be passed with `NODEJS_WHISPER_CMAKE_ARGS`.
 NODEJS_WHISPER_CMAKE_ARGS="-DGGML_NATIVE=OFF" npm test
 ```
 
+When `modelRootPath` is used with `autoDownloadModelName`, downloaded models are saved in that directory.
+
+Docker model cache example:
+
+```yaml
+volumes:
+    - ./.docker-data/whisper-models:/data/whisper-models
+```
+
+```javascript
+await nodewhisper(filePath, {
+    modelName: 'tiny.en',
+    autoDownloadModelName: 'tiny.en',
+    modelRootPath: '/data/whisper-models',
+    whisperOptions: {
+        outputInSrt: true,
+    },
+})
+```
+
+The downloaded model will be stored at `/data/whisper-models/ggml-tiny.en.bin`, while the package's internal downloader scripts remain available.
+
 ## Types
 
 ```
