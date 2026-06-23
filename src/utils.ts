@@ -1,6 +1,6 @@
+import { execFileSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import shell from 'shelljs'
 import { Logger } from './types'
 
 export const checkIfFileExists = (filePath: string) => {
@@ -39,6 +39,42 @@ async function isValidWavHeader(filePath: string): Promise<boolean> {
 	})
 }
 
+// Run ffmpeg to convert `inputFilePath` to a 16 kHz mono PCM WAV at `outputFilePath`.
+// Arguments are passed as a discrete argv array with NO shell, so a path containing
+// shell metacharacters (quotes, `;`, `$()`, backticks) is treated strictly as data and
+// can never be interpreted as a command. Throws with the original error message on failure.
+function runFfmpegConversion(inputFilePath: string, outputFilePath: string): void {
+	try {
+		execFileSync(
+			'ffmpeg',
+			[
+				'-nostats',
+				'-loglevel',
+				'error',
+				'-y',
+				'-i',
+				inputFilePath,
+				'-ar',
+				'16000',
+				'-ac',
+				'1',
+				'-c:a',
+				'pcm_s16le',
+				outputFilePath,
+			],
+			{ stdio: 'pipe' }
+		)
+	} catch (err) {
+		const stderr =
+			err && typeof err === 'object' && 'stderr' in err && (err as { stderr?: unknown }).stderr
+				? String((err as { stderr: unknown }).stderr)
+				: err instanceof Error
+					? err.message
+					: 'unknown error'
+		throw new Error(`[Nodejs-whisper] Failed to convert audio file: ${stderr}`)
+	}
+}
+
 export const convertToWavType = async (inputFilePath: string, logger: Logger = console) => {
 	const fileExtension = path.extname(inputFilePath).toLowerCase()
 
@@ -55,11 +91,7 @@ export const convertToWavType = async (inputFilePath: string, logger: Logger = c
 
 			// Use a temporary file to avoid overwrite conflicts
 			const tempFile = inputFilePath + '.temp.wav'
-			const command = `ffmpeg -nostats -loglevel error -y -i "${inputFilePath}" -ar 16000 -ac 1 -c:a pcm_s16le "${tempFile}"`
-			const result = shell.exec(command)
-			if (result.code !== 0) {
-				throw new Error(`[Nodejs-whisper] Failed to convert audio file: ${result.stderr}`)
-			}
+			runFfmpegConversion(inputFilePath, tempFile)
 
 			fs.renameSync(tempFile, inputFilePath)
 			return inputFilePath
@@ -73,11 +105,7 @@ export const convertToWavType = async (inputFilePath: string, logger: Logger = c
 
 		logger.debug(`[Nodejs-whisper] Converting to a new WAV file: ${outputFilePath}`)
 
-		const command = `ffmpeg -nostats -loglevel error -y -i "${inputFilePath}" -ar 16000 -ac 1 -c:a pcm_s16le "${outputFilePath}"`
-		const result = shell.exec(command)
-		if (result.code !== 0) {
-			throw new Error(`[Nodejs-whisper] Failed to convert audio file: ${result.stderr}`)
-		}
+		runFfmpegConversion(inputFilePath, outputFilePath)
 		return outputFilePath
 	}
 }
