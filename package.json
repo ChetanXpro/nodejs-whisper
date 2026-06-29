@@ -54,7 +54,7 @@
 		"shelljs": "^0.10.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.0.3",
+		"@types/node": "^26.0.1",
 		"@types/readline-sync": "^1.4.4",
 		"@types/shelljs": "^0.8.12",
 		"nodemon": "3.1.10",
