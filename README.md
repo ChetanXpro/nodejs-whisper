@@ -218,7 +218,7 @@ returned transcript and VTT file, and checks that whisper.cpp output is routed t
 
 ## Made with
 
--   [Whisper OpenAI (using C++ port by: ggerganov)](https://github.com/ggerganov/whisper.cpp)
+-   [Whisper OpenAI (using whisper.cpp)](https://github.com/ggml-org/whisper.cpp)
 
 ## Feedback
 
