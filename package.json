@@ -1,6 +1,6 @@
 {
 	"name": "nodejs-whisper",
-	"version": "0.2.9",
+	"version": "0.3.1",
 	"description": "Node bindings for OpenAI's Whisper. Optimized for CPU.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -17,10 +17,12 @@
 	"scripts": {
 		"start": "ts-node src/index.ts",
 		"dev": "nodemon --watch 'src/**/*.ts' --exec ts-node src/index.ts",
-		"test": "ts-node example/index.ts",
+		"test": "node --require ts-node/register --test test/*.test.js",
+		"test:integration": "node --require ts-node/register --test test/core.integration.js",
+		"test:example": "ts-node example/index.ts",
 		"typecheck": "tsc --noEmit",
 		"build": "tsc && chmod +x dist/downloadModel.js",
-		"format": "prettier --write src/**/*.ts"
+		"format": "prettier --write src/**/*.ts test/**/*.js"
 	},
 	"keywords": [
 		"OpenAI",

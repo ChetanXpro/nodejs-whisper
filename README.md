@@ -57,7 +57,7 @@ npx nodejs-whisper download
 
 ## Usage/Examples
 
-See `example/index.ts` (can be run with `$ npm run test`)
+See `example/index.ts` (can be run with `$ npm run test:example`)
 
 ```javascript
 import path from 'path'
@@ -105,6 +105,10 @@ const MODELS_LIST = [
 	'large-v3-turbo',
 ]
 ```
+
+The configured logger receives transcript output through `logger.log`, whisper.cpp initialization and progress
+details through `logger.debug`, and command failures through `logger.error`. Child-process output is not written
+directly to the parent process.
 
 Custom CMake flags can be passed with `NODEJS_WHISPER_CMAKE_ARGS`.
 
@@ -194,8 +198,23 @@ Start the server
 Build project
 
 ```bash
-  npm run build
+npm run build
 ```
+
+Run the fast unit suite
+
+```bash
+npm test
+```
+
+Run the end-to-end transcription test
+
+```bash
+npm run test:integration
+```
+
+The integration test downloads and builds `tiny.en` when needed, transcribes the bundled audio sample, verifies the
+returned transcript and VTT file, and checks that whisper.cpp output is routed through the configured logger.
 
 ## Made with
 

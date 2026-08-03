@@ -28,6 +28,9 @@ jobs:
     
     - name: Run type check
       run: npm run typecheck
+
+    - name: Run unit tests
+      run: npm test
     
     - name: Format code
       run: npm run format

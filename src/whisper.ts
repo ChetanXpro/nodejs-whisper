@@ -12,7 +12,8 @@ export interface IShellOptions {
 }
 
 const defaultShellOptions: IShellOptions = {
-	silent: false,
+	// Route child output through the configured logger.
+	silent: true,
 	async: true,
 }
 
@@ -77,10 +78,8 @@ export async function whisperShell(
 			windowsHide: true, // Prevent command window popup on Windows
 		}
 
-		shell.exec(command, shellOptions, (code, stdout, stderr) => {
+		const child = shell.exec(command, shellOptions, (code, stdout, stderr) => {
 			logger.debug('Exit code:', code)
-			logger.debug('Stdout:', stdout)
-			logger.debug('Stderr:', stderr)
 
 			if (code === 0) {
 				if (stdout.includes('error:')) {
@@ -94,6 +93,11 @@ export async function whisperShell(
 				reject(new Error(stderr || `Command failed with exit code ${code}`))
 			}
 		})
+
+		child.stdout?.on('data', data => logger.log(data.toString()))
+		// whisper.cpp writes normal initialization and progress details to stderr,
+		// so keep those at debug level. Actual command failures are logged as errors.
+		child.stderr?.on('data', data => logger.debug(data.toString()))
 	}).catch((error: Error) => {
 		handleError(error, logger, projectDir)
 		return Promise.reject(error)
