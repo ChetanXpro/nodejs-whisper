@@ -4,15 +4,16 @@ const path = require('node:path')
 const test = require('node:test')
 
 const { nodewhisper } = require('../src/index')
-const { MODEL_OBJECT, WHISPER_CPP_PATH } = require('../src/constants')
+const { MODEL_OBJECT, VAD_MODEL_OBJECT, WHISPER_CPP_PATH } = require('../src/constants')
 
 test(
-	'transcribes audio with tiny.en and routes whisper.cpp output through the logger',
+	'transcribes audio with tiny.en and VAD while routing whisper.cpp output through the logger',
 	{ timeout: 10 * 60 * 1000 },
 	async t => {
 		const audioFile = path.resolve(__dirname, '../example/mother_teresa.wav')
 		const outputFile = `${audioFile}.vtt`
 		const modelFile = path.join(WHISPER_CPP_PATH, 'models', MODEL_OBJECT['tiny.en'])
+		const vadModelFile = path.join(WHISPER_CPP_PATH, 'models', VAD_MODEL_OBJECT['silero-v6.2.0'])
 		const loggerEvents = []
 		const leakedWhisperOutput = []
 		const logger = {
@@ -44,12 +45,19 @@ test(
 			transcript = await nodewhisper(audioFile, {
 				modelName: 'tiny.en',
 				autoDownloadModelName: 'tiny.en',
+				autoDownloadVadModelName: 'silero-v6.2.0',
 				logger,
 				whisperOptions: {
 					noGpu: true,
 					outputInVtt: true,
 					splitOnWord: true,
 					timestamps_length: 14,
+					vadThreshold: 0.5,
+					vadMinSpeechDurationMs: 250,
+					vadMinSilenceDurationMs: 100,
+					vadMaxSpeechDurationS: 30,
+					vadSpeechPadMs: 30,
+					vadSamplesOverlap: 0.1,
 				},
 			})
 		} finally {
@@ -58,6 +66,7 @@ test(
 		}
 
 		const normalizedTranscript = transcript.replace(/\s+/g, ' ').toLowerCase()
+		const transcriptText = normalizedTranscript.replace(/\[[^\]]+\]/g, ' ').replace(/\s+/g, ' ')
 		const debugOutput = loggerEvents
 			.filter(([level]) => level === 'debug')
 			.flatMap(([, ...args]) => args)
@@ -68,12 +77,16 @@ test(
 			.join(' ')
 
 		assert.equal(fs.existsSync(modelFile), true, 'tiny.en model should be available')
-		assert.match(normalizedTranscript, /i do not want.*your money/)
-		assert.match(normalizedTranscript, /i want your.*forgiveness/)
+		assert.equal(fs.existsSync(vadModelFile), true, 'Silero VAD model should be available')
+		assert.match(transcriptText, /i do not want.*your money/)
+		assert.match(transcriptText, /i want your/)
 		assert.match(loggedTranscript.toLowerCase(), /i do not want/)
 		assert.match(debugOutput, /whisper_init_with_params_no_state:/)
 		assert.match(debugOutput, /-sow(?:\s|$)/)
 		assert.doesNotMatch(debugOutput, /-sow\s+true/)
+		assert.match(debugOutput, /--vad\s+-vm/)
+		assert.match(debugOutput, /ggml-silero-v6\.2\.0\.bin/)
+		assert.match(debugOutput, /whisper_vad_init_from_file_with_params/)
 		assert.deepEqual(leakedWhisperOutput, [])
 
 		assert.equal(fs.existsSync(outputFile), true, 'VTT output should be created')

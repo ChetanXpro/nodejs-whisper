@@ -56,14 +56,6 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 		throw new Error('[Nodejs-whisper] Error: whisper-cli executable not found')
 	}
 
-	// Construct command with proper path escaping
-	const escapeArg = (arg: string) => {
-		if (process.platform === 'win32') {
-			return `"${arg.replace(/"/g, '\\"')}"`
-		}
-		return `"${arg}"`
-	}
-
 	const modelArg = args.modelRootPath ? modelPath : `./models/${modelFileName}`
 
 	let command = `${escapeArg(executablePath)} ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language || 'auto'} -m ${escapeArg(modelArg)} -f ${escapeArg(filePath)}`
@@ -72,6 +64,7 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 }
 
 const constructOptionsFlags = (args: IOptions): string => {
+	const vadFlags = constructVadFlags(args)
 	let flags = [
 		args.whisperOptions?.outputInCsv ? '-ocsv ' : '',
 		args.whisperOptions?.outputInJson ? '-oj ' : '',
@@ -86,7 +79,68 @@ const constructOptionsFlags = (args: IOptions): string => {
 		args.whisperOptions?.timestamps_length ? `-ml ${args.whisperOptions.timestamps_length} ` : '',
 		args.whisperOptions?.splitOnWord ? '-sow ' : '',
 		args.whisperOptions?.noGpu ? '-ng ' : '',
+		vadFlags,
 	].join('')
 
 	return flags.trim()
+}
+
+const constructVadFlags = (args: IOptions): string => {
+	const options = args.whisperOptions
+	if (!options?.vad) {
+		return ''
+	}
+
+	if (!options.vadModelPath) {
+		throw new Error('[Nodejs-whisper] Error: VAD requires whisperOptions.vadModelPath or autoDownloadVadModelName.')
+	}
+
+	const vadModelPath = path.resolve(options.vadModelPath)
+	if (!fs.existsSync(vadModelPath)) {
+		throw new Error(`[Nodejs-whisper] Error: VAD model file does not exist at ${vadModelPath}.`)
+	}
+
+	validateNumber('vadThreshold', options.vadThreshold, 0, 1)
+	validateNumber('vadMinSpeechDurationMs', options.vadMinSpeechDurationMs, 0, undefined, true)
+	validateNumber('vadMinSilenceDurationMs', options.vadMinSilenceDurationMs, 0, undefined, true)
+	validateNumber('vadMaxSpeechDurationS', options.vadMaxSpeechDurationS, Number.MIN_VALUE)
+	validateNumber('vadSpeechPadMs', options.vadSpeechPadMs, 0, undefined, true)
+	validateNumber('vadSamplesOverlap', options.vadSamplesOverlap, 0)
+
+	return [
+		`--vad -vm ${escapeArg(vadModelPath)} `,
+		optionFlag('-vt', options.vadThreshold),
+		optionFlag('-vspd', options.vadMinSpeechDurationMs),
+		optionFlag('-vsd', options.vadMinSilenceDurationMs),
+		optionFlag('-vmsd', options.vadMaxSpeechDurationS),
+		optionFlag('-vp', options.vadSpeechPadMs),
+		optionFlag('-vo', options.vadSamplesOverlap),
+	].join('')
+}
+
+const optionFlag = (flag: string, value?: number): string => (value === undefined ? '' : `${flag} ${value} `)
+
+const validateNumber = (name: string, value: number | undefined, min: number, max?: number, integer = false) => {
+	if (value === undefined) {
+		return
+	}
+
+	if (
+		!Number.isFinite(value) ||
+		value < min ||
+		(max !== undefined && value > max) ||
+		(integer && !Number.isInteger(value))
+	) {
+		const range = max === undefined ? `at least ${min}` : `between ${min} and ${max}`
+		throw new Error(
+			`[Nodejs-whisper] Error: whisperOptions.${name} must be ${range}${integer ? ' and an integer' : ''}.`
+		)
+	}
+}
+
+const escapeArg = (arg: string) => {
+	if (process.platform === 'win32') {
+		return `"${arg.replace(/"/g, '\\"')}"`
+	}
+	return `"${arg}"`
 }

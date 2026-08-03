@@ -52,6 +52,16 @@ export const isModelName = (modelName: unknown): modelName is ModelName =>
 
 export const DEFAULT_MODEL = 'tiny.en'
 
+export const VAD_MODEL_OBJECT = {
+	'silero-v5.1.2': 'ggml-silero-v5.1.2.bin',
+	'silero-v6.2.0': 'ggml-silero-v6.2.0.bin',
+}
+
+export type VadModelName = keyof typeof VAD_MODEL_OBJECT
+
+export const isVadModelName = (modelName: unknown): modelName is VadModelName =>
+	typeof modelName === 'string' && Object.prototype.hasOwnProperty.call(VAD_MODEL_OBJECT, modelName)
+
 export const WHISPER_CPP_PATH = path.join(__dirname, '..', 'cpp', 'whisper.cpp')
 
 export const WHISPER_CPP_MAIN_PATH =

@@ -70,6 +70,7 @@ await nodewhisper(filePath, {
 	modelName: 'base.en', //Downloaded models name
 	modelRootPath: '/path/to/whisper/models', // (optional) directory containing the selected ggml model file
 	autoDownloadModelName: 'base.en', // (optional) auto download a model if model is not present
+	autoDownloadVadModelName: 'silero-v6.2.0', // (optional) download and enable a Silero VAD model
 	removeWavFileAfterTranscription: false, // (optional) remove wav file once transcribed
 	withCuda: false, // (optional) use cuda for faster processing
 	logger: console, // (optional) Logging instance, defaults to console
@@ -87,6 +88,12 @@ await nodewhisper(filePath, {
 		timestamps_length: 20, // amount of dialogue per timestamp pair
 		splitOnWord: true, // split on word rather than on token
 		noGpu: false, // disable GPU inference
+		vadThreshold: 0.5, // speech detection probability threshold
+		vadMinSpeechDurationMs: 250, // discard shorter speech segments
+		vadMinSilenceDurationMs: 100, // silence required to split segments
+		vadMaxSpeechDurationS: 30, // split speech segments longer than this
+		vadSpeechPadMs: 30, // padding around detected speech
+		vadSamplesOverlap: 0.1, // overlap between speech segments in seconds
 	},
 })
 
@@ -158,6 +165,26 @@ await nodewhisper(filePath, {
 
 The downloaded model will be stored at `/data/whisper-models/ggml-tiny.en.bin`, while the package's internal downloader scripts remain available.
 
+### Voice activity detection
+
+VAD detects speech before transcription, which can reduce work on long recordings with silence. The recommended
+Silero model is less than 1 MB and can be downloaded automatically:
+
+```javascript
+await nodewhisper(filePath, {
+	modelName: 'tiny.en',
+	autoDownloadModelName: 'tiny.en',
+	autoDownloadVadModelName: 'silero-v6.2.0',
+	whisperOptions: {
+		vadThreshold: 0.5,
+		vadMinSilenceDurationMs: 100,
+	},
+})
+```
+
+Providing `autoDownloadVadModelName` enables VAD automatically. To use an existing or custom VAD model instead,
+set `whisperOptions.vad` to `true` and provide its path through `whisperOptions.vadModelPath`.
+
 ## Types
 
 ```
@@ -167,6 +194,7 @@ The downloaded model will be stored at `/data/whisper-models/ggml-tiny.en.bin`, 
 	removeWavFileAfterTranscription?: boolean
 	withCuda?: boolean
 	autoDownloadModelName?: string
+	autoDownloadVadModelName?: 'silero-v5.1.2' | 'silero-v6.2.0'
 	whisperOptions?: WhisperOptions
 	logger?: Console
 }
@@ -185,6 +213,14 @@ The downloaded model will be stored at `/data/whisper-models/ggml-tiny.en.bin`, 
 	wordTimestamps?: boolean
 	splitOnWord?: boolean
 	noGpu?: boolean
+	vad?: boolean
+	vadModelPath?: string
+	vadThreshold?: number
+	vadMinSpeechDurationMs?: number
+	vadMinSilenceDurationMs?: number
+	vadMaxSpeechDurationS?: number
+	vadSpeechPadMs?: number
+	vadSamplesOverlap?: number
 }
 
 ```
@@ -233,8 +269,9 @@ Run the end-to-end transcription test
 npm run test:integration
 ```
 
-The integration test downloads and builds `tiny.en` when needed, transcribes the bundled audio sample, verifies the
-returned transcript and VTT file, and checks that whisper.cpp output is routed through the configured logger.
+The integration test downloads and builds `tiny.en` when needed, downloads the Silero VAD model, transcribes the
+bundled audio sample with VAD enabled, verifies the returned transcript and VTT file, and checks that whisper.cpp
+output is routed through the configured logger.
 
 ## Made with
 

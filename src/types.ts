@@ -13,6 +13,14 @@ export interface WhisperOptions {
 	wordTimestamps?: boolean
 	splitOnWord?: boolean
 	noGpu?: boolean
+	vad?: boolean
+	vadModelPath?: string
+	vadThreshold?: number
+	vadMinSpeechDurationMs?: number
+	vadMinSilenceDurationMs?: number
+	vadMaxSpeechDurationS?: number
+	vadSpeechPadMs?: number
+	vadSamplesOverlap?: number
 }
 
 export interface Logger {

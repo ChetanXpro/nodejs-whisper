@@ -4,11 +4,16 @@ import fs from 'fs'
 import { constructCommand } from './WhisperHelper'
 import { checkIfFileExists, convertToWavType } from './utils'
 import autoDownloadModel from './autoDownloadModel'
+import autoDownloadVadModel from './autoDownloadVadModel'
+import { VadModelName } from './constants'
+
+export type { VadModelName } from './constants'
 
 export interface IOptions {
 	modelName: string
 	modelRootPath?: string
 	autoDownloadModelName?: string
+	autoDownloadVadModelName?: VadModelName
 	whisperOptions?: WhisperOptions
 	withCuda?: boolean
 	removeWavFileAfterTranscription?: boolean
@@ -19,6 +24,8 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 	const { removeWavFileAfterTranscription = false, logger = console } = options
 
 	try {
+		let runtimeOptions = options
+
 		if (options.autoDownloadModelName) {
 			logger.debug(`[Nodejs-whisper] Checking and downloading model if needed: ${options.autoDownloadModelName}`)
 
@@ -28,6 +35,25 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 			await autoDownloadModel(logger, options.autoDownloadModelName, options.withCuda, options.modelRootPath)
 		}
 
+		if (options.autoDownloadVadModelName) {
+			logger.debug(
+				`[Nodejs-whisper] Checking and downloading VAD model if needed: ${options.autoDownloadVadModelName}`
+			)
+			const vadModelPath = await autoDownloadVadModel(
+				logger,
+				options.autoDownloadVadModelName,
+				options.modelRootPath
+			)
+			runtimeOptions = {
+				...options,
+				whisperOptions: {
+					...options.whisperOptions,
+					vad: true,
+					vadModelPath,
+				},
+			}
+		}
+
 		logger.debug(`[Nodejs-whisper] Checking file existence: ${filePath}`)
 		checkIfFileExists(filePath)
 
@@ -35,7 +61,7 @@ export async function nodewhisper(filePath: string, options: IOptions) {
 		const outputFilePath = await convertToWavType(filePath, logger)
 
 		logger.debug(`[Nodejs-whisper] Constructing command for file: ${outputFilePath}`)
-		const command = constructCommand(outputFilePath, options)
+		const command = constructCommand(outputFilePath, runtimeOptions)
 
 		logger.debug(`[Nodejs-whisper] Executing command: ${command}`)
 		const transcript = await executeCppCommand(command, logger, options.withCuda)
