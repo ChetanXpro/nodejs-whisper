@@ -1,8 +1,14 @@
 import fs from 'fs'
+import https from 'https'
 import path from 'path'
-import shell from 'shelljs'
+import { IncomingMessage } from 'http'
+import { pipeline } from 'stream'
+import { promisify } from 'util'
 import { isVadModelName, VAD_MODEL_OBJECT, VadModelName, WHISPER_CPP_PATH } from './constants'
 import { Logger } from './types'
+
+const pipelineAsync = promisify(pipeline)
+const VAD_MODEL_BASE_URL = 'https://huggingface.co/ggml-org/whisper-vad/resolve/main'
 
 export default async function autoDownloadVadModel(
 	logger: Logger = console,
@@ -27,38 +33,67 @@ export default async function autoDownloadVadModel(
 		throw new Error(`[Nodejs-whisper] Existing VAD model is invalid: ${modelPath}`)
 	}
 
-	const scriptName = process.platform === 'win32' ? 'download-vad-model.cmd' : 'download-vad-model.sh'
-	const scriptPath = path.join(WHISPER_CPP_PATH, 'models', scriptName)
-
-	if (!fs.existsSync(scriptPath)) {
-		throw new Error(`[Nodejs-whisper] Error: VAD model downloader not found at ${scriptPath}`)
-	}
-
-	if (process.platform !== 'win32') {
-		shell.chmod('+x', scriptPath)
-	}
-
 	logger.debug(`[Nodejs-whisper] Auto-download VAD model: ${modelName}`)
-	const result = shell.exec(
-		`${quoteShellArg(scriptPath)} ${quoteShellArg(modelName)} ${quoteShellArg(modelDirectory)}`,
-		{ silent: true }
-	)
+	const modelUrl = `${VAD_MODEL_BASE_URL}/${VAD_MODEL_OBJECT[modelName]}`
 
-	if (result.stdout) {
-		logger.debug(result.stdout)
-	}
-	if (result.stderr) {
-		logger.debug(result.stderr)
+	try {
+		await downloadFile(modelUrl, modelPath)
+	} catch (error) {
+		throw new Error(`[Nodejs-whisper] Failed to download VAD model: ${error.message}`)
 	}
 
-	if (result.code !== 0 || !isValidVadModel(modelPath)) {
-		if (fs.existsSync(modelPath)) {
-			fs.unlinkSync(modelPath)
-		}
-		throw new Error(`[Nodejs-whisper] Failed to download VAD model: ${result.stderr || result.stdout}`)
+	if (!isValidVadModel(modelPath)) {
+		fs.unlinkSync(modelPath)
+		throw new Error('[Nodejs-whisper] Failed to download VAD model: downloaded file is invalid')
 	}
 
+	logger.debug(`[Nodejs-whisper] VAD model downloaded to ${modelPath}`)
 	return modelPath
+}
+
+async function downloadFile(url: string, destination: string): Promise<void> {
+	const temporaryPath = `${destination}.${process.pid}.download`
+
+	try {
+		const response = await getResponse(url)
+		await pipelineAsync(response, fs.createWriteStream(temporaryPath, { flags: 'wx' }))
+		fs.renameSync(temporaryPath, destination)
+	} catch (error) {
+		if (fs.existsSync(temporaryPath)) {
+			fs.unlinkSync(temporaryPath)
+		}
+		throw error
+	}
+}
+
+function getResponse(url: string, redirectsRemaining = 5): Promise<IncomingMessage> {
+	return new Promise((resolve, reject) => {
+		const request = https.get(url, response => {
+			const statusCode = response.statusCode || 0
+			const redirectUrl = response.headers.location
+
+			if (statusCode >= 300 && statusCode < 400 && redirectUrl) {
+				response.resume()
+				if (redirectsRemaining === 0) {
+					reject(new Error('too many redirects'))
+					return
+				}
+				getResponse(new URL(redirectUrl, url).toString(), redirectsRemaining - 1).then(resolve, reject)
+				return
+			}
+
+			if (statusCode !== 200) {
+				response.resume()
+				reject(new Error(`download request returned HTTP ${statusCode}`))
+				return
+			}
+
+			resolve(response)
+		})
+
+		request.setTimeout(60_000, () => request.destroy(new Error('download request timed out')))
+		request.on('error', reject)
+	})
 }
 
 function isValidVadModel(modelPath: string): boolean {
@@ -74,12 +109,4 @@ function isValidVadModel(modelPath: string): boolean {
 	} finally {
 		fs.closeSync(file)
 	}
-}
-
-function quoteShellArg(arg: string): string {
-	if (process.platform === 'win32') {
-		return `"${arg.replace(/"/g, '""')}"`
-	}
-
-	return `'${arg.replace(/'/g, `'\\''`)}'`
 }
