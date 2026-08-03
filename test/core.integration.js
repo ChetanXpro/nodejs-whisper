@@ -48,6 +48,7 @@ test(
 				whisperOptions: {
 					noGpu: true,
 					outputInVtt: true,
+					splitOnWord: true,
 					timestamps_length: 14,
 				},
 			})
@@ -71,6 +72,8 @@ test(
 		assert.match(normalizedTranscript, /i want your.*forgiveness/)
 		assert.match(loggedTranscript.toLowerCase(), /i do not want/)
 		assert.match(debugOutput, /whisper_init_with_params_no_state:/)
+		assert.match(debugOutput, /-sow(?:\s|$)/)
+		assert.doesNotMatch(debugOutput, /-sow\s+true/)
 		assert.deepEqual(leakedWhisperOutput, [])
 
 		assert.equal(fs.existsSync(outputFile), true, 'VTT output should be created')

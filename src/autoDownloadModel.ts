@@ -1,7 +1,7 @@
 import path from 'path'
 import shell from 'shelljs'
 import fs from 'fs'
-import { MODEL_OBJECT, MODELS_LIST, WHISPER_CPP_PATH } from './constants'
+import { DOWNLOAD_MODEL_ALIASES, isModelName, LEGACY_MODEL_FILES, MODEL_OBJECT, WHISPER_CPP_PATH } from './constants'
 import { Logger } from './types'
 import { getCmakeConfigureCommand } from './buildConfig'
 
@@ -17,7 +17,7 @@ export default async function autoDownloadModel(
 		throw new Error('[Nodejs-whisper] Error: Model name must be provided.')
 	}
 
-	if (!MODELS_LIST.includes(autoDownloadModelName)) {
+	if (!isModelName(autoDownloadModelName)) {
 		throw new Error('[Nodejs-whisper] Error: Provide a valid model name')
 	}
 
@@ -27,7 +27,8 @@ export default async function autoDownloadModel(
 
 		fs.mkdirSync(downloadDirectory, { recursive: true })
 		shell.cd(modelDirectory)
-		const modelAlreadyExist = fs.existsSync(path.join(downloadDirectory, MODEL_OBJECT[autoDownloadModelName]))
+		const modelFiles = [MODEL_OBJECT[autoDownloadModelName], ...(LEGACY_MODEL_FILES[autoDownloadModelName] || [])]
+		const modelAlreadyExist = modelFiles.some(modelFile => fs.existsSync(path.join(downloadDirectory, modelFile)))
 
 		if (modelAlreadyExist) {
 			logger.debug(`[Nodejs-whisper] ${autoDownloadModelName} already exist. Skipping download.`)
@@ -35,6 +36,7 @@ export default async function autoDownloadModel(
 		}
 
 		logger.debug(`[Nodejs-whisper] Auto-download Model: ${autoDownloadModelName}`)
+		const downloadModelName = DOWNLOAD_MODEL_ALIASES[autoDownloadModelName] || autoDownloadModelName
 
 		let scriptPath = './download-ggml-model.sh'
 		if (process.platform === 'win32') {
@@ -43,7 +45,7 @@ export default async function autoDownloadModel(
 
 		shell.chmod('+x', scriptPath)
 		const downloadPathArg = modelRootPath ? ` ${quoteShellArg(downloadDirectory)}` : ''
-		const result = shell.exec(`${scriptPath} ${autoDownloadModelName}${downloadPathArg}`)
+		const result = shell.exec(`${scriptPath} ${downloadModelName}${downloadPathArg}`)
 
 		if (result.code !== 0) {
 			throw new Error(`[Nodejs-whisper] Failed to download model: ${result.stderr}`)

@@ -1,6 +1,6 @@
 import path from 'path'
 import fs from 'fs'
-import { MODELS_LIST, MODEL_OBJECT, WHISPER_CPP_PATH } from './constants'
+import { isModelName, LEGACY_MODEL_FILES, MODELS_LIST, MODEL_OBJECT, WHISPER_CPP_PATH } from './constants'
 import { IOptions } from '.'
 
 // Get the correct executable path based on platform and build system
@@ -26,33 +26,28 @@ function getExecutablePath(): string {
 }
 
 export const constructCommand = (filePath: string, args: IOptions): string => {
-	let errors: string[] = []
-	const modelName = MODEL_OBJECT[args.modelName as keyof typeof MODEL_OBJECT]
-
 	if (!args.modelName) {
-		errors.push('[Nodejs-whisper] Error: Provide model name')
+		throw new Error('[Nodejs-whisper] Error: Provide model name')
 	}
 
-	if (!MODELS_LIST.includes(args.modelName)) {
-		errors.push(`[Nodejs-whisper] Error: Enter a valid model name. Available models are: ${MODELS_LIST.join(', ')}`)
-	}
-
-	if (errors.length > 0) {
-		throw new Error(errors.join('\n'))
-	}
-
-	const modelPath = args.modelRootPath
-		? path.resolve(args.modelRootPath, modelName)
-		: path.join(WHISPER_CPP_PATH, 'models', modelName)
-
-	if (!fs.existsSync(modelPath)) {
-		errors.push(
-			`[Nodejs-whisper] Error: Model file does not exist at ${modelPath}. Please ensure the model is downloaded and correctly placed.`
+	if (!isModelName(args.modelName)) {
+		throw new Error(
+			`[Nodejs-whisper] Error: Enter a valid model name. Available models are: ${MODELS_LIST.join(', ')}`
 		)
 	}
 
-	if (errors.length > 0) {
-		throw new Error(errors.join('\n'))
+	const modelName = MODEL_OBJECT[args.modelName]
+
+	const modelDirectory = args.modelRootPath ? path.resolve(args.modelRootPath) : path.join(WHISPER_CPP_PATH, 'models')
+	const modelFileNames = [modelName, ...(LEGACY_MODEL_FILES[args.modelName] || [])]
+	const modelFileName =
+		modelFileNames.find(fileName => fs.existsSync(path.join(modelDirectory, fileName))) || modelName
+	const modelPath = path.join(modelDirectory, modelFileName)
+
+	if (!fs.existsSync(modelPath)) {
+		throw new Error(
+			`[Nodejs-whisper] Error: Model file does not exist at ${modelPath}. Please ensure the model is downloaded and correctly placed.`
+		)
 	}
 
 	// Get the actual executable path
@@ -69,7 +64,7 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 		return `"${arg}"`
 	}
 
-	const modelArg = args.modelRootPath ? modelPath : `./models/${modelName}`
+	const modelArg = args.modelRootPath ? modelPath : `./models/${modelFileName}`
 
 	let command = `${escapeArg(executablePath)} ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language || 'auto'} -m ${escapeArg(modelArg)} -f ${escapeArg(filePath)}`
 
@@ -89,7 +84,7 @@ const constructOptionsFlags = (args: IOptions): string => {
 		args.whisperOptions?.translateToEnglish ? '-tr ' : '',
 		args.whisperOptions?.wordTimestamps ? '-ml 1 ' : '',
 		args.whisperOptions?.timestamps_length ? `-ml ${args.whisperOptions.timestamps_length} ` : '',
-		args.whisperOptions?.splitOnWord ? '-sow true ' : '',
+		args.whisperOptions?.splitOnWord ? '-sow ' : '',
 		args.whisperOptions?.noGpu ? '-ng ' : '',
 	].join('')
 

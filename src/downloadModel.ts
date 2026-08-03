@@ -5,11 +5,20 @@
 import path from 'path'
 import shell from 'shelljs'
 import readlineSync from 'readline-sync'
-import { MODELS_LIST, DEFAULT_MODEL, MODELS, WHISPER_CPP_PATH, MODEL_OBJECT } from './constants'
+import {
+	DEFAULT_MODEL,
+	DOWNLOAD_MODEL_ALIASES,
+	isModelName,
+	LEGACY_MODEL_FILES,
+	ModelName,
+	MODELS_LIST,
+	WHISPER_CPP_PATH,
+	MODEL_OBJECT,
+} from './constants'
 import fs from 'fs'
 import { Logger } from './types'
 import { getCmakeConfigureCommand } from './buildConfig'
-const askForModel = async (logger: Logger = console): Promise<string> => {
+const askForModel = async (logger: Logger = console): Promise<ModelName> => {
 	const answer = await readlineSync.question(
 		`\n[Nodejs-whisper] Enter model name (e.g. 'tiny.en') or 'cancel' to exit\n(ENTER for tiny.en): `
 	)
@@ -22,7 +31,7 @@ const askForModel = async (logger: Logger = console): Promise<string> => {
 	else if (answer === '') {
 		logger.log('[Nodejs-whisper] Going with', DEFAULT_MODEL)
 		return DEFAULT_MODEL
-	} else if (!MODELS_LIST.includes(answer)) {
+	} else if (!isModelName(answer)) {
 		logger.log(
 			'\n[Nodejs-whisper] FAIL: Name not found. Check your spelling OR quit wizard and use custom model.\n'
 		)
@@ -53,11 +62,11 @@ async function downloadModel(logger: Logger = console) {
 	try {
 		shell.cd(path.join(WHISPER_CPP_PATH, 'models'))
 
-		let anyModelExist = []
+		const anyModelExist: ModelName[] = []
 
 		MODELS_LIST.forEach(model => {
-			if (!fs.existsSync(path.join(WHISPER_CPP_PATH, 'models', MODEL_OBJECT[model]))) {
-			} else {
+			const modelFiles = [MODEL_OBJECT[model], ...(LEGACY_MODEL_FILES[model] || [])]
+			if (modelFiles.some(modelFile => fs.existsSync(path.join(WHISPER_CPP_PATH, 'models', modelFile)))) {
 				anyModelExist.push(model)
 			}
 		})
@@ -68,21 +77,7 @@ async function downloadModel(logger: Logger = console) {
 			logger.log('\n[Nodejs-whisper] You can install additional models from the list below.\n')
 		}
 
-		logger.log(`
-| Model          | Disk   | RAM     |
-|----------------|--------|---------|
-| tiny           |  75 MB | ~390 MB |
-| tiny.en        |  75 MB | ~390 MB |
-| base           | 142 MB | ~500 MB |
-| base.en        | 142 MB | ~500 MB |
-| small          | 466 MB | ~1.0 GB |
-| small.en       | 466 MB | ~1.0 GB |
-| medium         | 1.5 GB | ~2.6 GB |
-| medium.en      | 1.5 GB | ~2.6 GB |
-| large-v1       | 2.9 GB | ~4.7 GB |
-| large          | 2.9 GB | ~4.7 GB |
-| large-v3-turbo | 1.5 GB | ~2.6 GB |
-`)
+		logger.log(`[Nodejs-whisper] Available models:\n${MODELS_LIST.join('\n')}`)
 
 		const downloaderScript = process.platform === 'win32' ? 'download-ggml-model.cmd' : './download-ggml-model.sh'
 
@@ -91,11 +86,12 @@ async function downloadModel(logger: Logger = console) {
 		}
 
 		const modelName = await askForModel()
+		const downloadModelName = DOWNLOAD_MODEL_ALIASES[modelName] || modelName
 
 		const scriptPath = downloaderScript
 
 		shell.chmod('+x', scriptPath)
-		shell.exec(`${scriptPath} ${modelName}`)
+		shell.exec(`${scriptPath} ${downloadModelName}`)
 
 		logger.log('[Nodejs-whisper] Attempting to build whisper.cpp...\n')
 		shell.cd('../')
