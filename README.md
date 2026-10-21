@@ -16,44 +16,22 @@ Node.js bindings for OpenAI's Whisper model.
 
 ## Installation
 
-1. Install make tools
+Requires Node.js 18+. Install FFmpeg if your audio needs conversion to 16 kHz WAV.
 
-```bash
-sudo apt update
-sudo apt install build-essential
-```
-
-2. Install nodejs-whisper with npm
-
-```bash
-  npm i nodejs-whisper
-```
-
-3. Download whisper model
-
-```bash
-  npx nodejs-whisper download
-```
-
--   NOTE: user may need to install make tool
-
-### Windows Installation
-
-1. Install MinGW-w64 or MSYS2 (which includes make tools)
-   - Option 1: Install MSYS2 from https://www.msys2.org/
-   - Option 2: Install MinGW-w64 from https://www.mingw-w64.org/
-
-2. Install nodejs-whisper with npm
 ```bash
 npm i nodejs-whisper
-```
-
-3. Download whisper model
-```bash
 npx nodejs-whisper download
 ```
 
-- Note: Make sure mingw32-make or make is available in your system PATH.
+When a matching native binary isn't bundled, installation attempts to build one. This requires CMake 3.19+,
+a C++17 compiler, and Node.js 20.17+ (20.x) or 22.9+:
+
+- Linux: `sudo apt install build-essential cmake`
+- macOS: install Xcode Command Line Tools and CMake.
+- Windows: install CMake and Visual Studio Build Tools with **Desktop development with C++**.
+
+If the native addon is unavailable, transcription uses the CLI backend. Building the CLI also needs CMake and
+a compiler. See [native builds](docs/development.md#native-builds) for CUDA and custom build settings.
 
 ## Usage/Examples
 
@@ -133,15 +111,54 @@ const MODELS_LIST = [
 ]
 ```
 
-The configured logger receives transcript output through `logger.log`, whisper.cpp initialization and progress
-details through `logger.debug`, and command failures through `logger.error`. Child-process output is not written
-directly to the parent process.
+The configured logger receives transcript segments through `logger.log`, diagnostics through `logger.debug`,
+and failures through `logger.error`.
 
-Custom CMake flags can be passed with `NODEJS_WHISPER_CMAKE_ARGS`.
+### Model reuse and concurrency
 
-```bash
-NODEJS_WHISPER_CMAKE_ARGS="-DGGML_NATIVE=OFF" npm test
+The native backend keeps models loaded between requests. Existing `nodewhisper()` calls still return a
+`Promise<string>` with the transcript for that recording.
+
+By default, one transcription runs at a time and up to 100 requests can wait. Each waiting request starts when
+a worker becomes available. A full queue rejects new requests with `ERR_WHISPER_QUEUE_FULL`. Idle models are
+released after 60 seconds.
+
+To change the limits, configure them before starting any requests:
+
+```ts
+import { nodewhisper, configureWhisper } from 'nodejs-whisper'
+
+await configureWhisper({
+    maxConcurrency: 2,
+    maxQueue: 50,
+})
+
+const [first, second] = await Promise.all([
+    nodewhisper('/audio/first.wav', { modelName: 'base.en' }),
+    nodewhisper('/audio/second.wav', { modelName: 'base.en' }),
+])
 ```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `maxConcurrency` | `1` | Maximum active requests |
+| `maxQueue` | `100` | Maximum waiting requests; `0` rejects requests that need to wait |
+| `threadsPerWorker` | Automatic, up to `4` | CPU threads per transcription; override with `whisperOptions.threads` |
+| `idleTimeoutMs` | `60000` | Release idle models after this many milliseconds; `0` keeps them loaded |
+| `queueTimeoutMs` | `0` | Maximum queue wait in milliseconds; `0` disables the timeout |
+| `backend` | `'auto'` | Use `'auto'`, `'native'`, or `'cli'`; can also be set per request |
+
+More workers use more model memory. Models are reused within the same Node.js environment when the model, GPU,
+and VAD settings match. Requests writing to the same output path run one at a time.
+
+Use `getWhisperStatus()` to check active and waiting requests. To release models, call `await disposeWhisper()`;
+it finishes accepted requests and rejects new ones until it completes. Idle workers don't keep Node running.
+
+`auto` falls back to the CLI when the addon is missing or incompatible, or when `outputInWords` requests a
+karaoke `.wts` file. Forced `native` mode rejects those requests. Failed native inference isn't retried through
+the CLI. See [error codes and debugging](docs/development.md#error-codes-and-debugging) for details.
+
+### Model storage
 
 When `modelRootPath` is used with `autoDownloadModelName`, downloaded models are saved in that directory.
 
@@ -163,7 +180,7 @@ await nodewhisper(filePath, {
 })
 ```
 
-The downloaded model will be stored at `/data/whisper-models/ggml-tiny.en.bin`, while the package's internal downloader scripts remain available.
+The model will be saved as `/data/whisper-models/ggml-tiny.en.bin`.
 
 ### Voice activity detection
 
@@ -197,9 +214,11 @@ set `whisperOptions.vad` to `true` and provide its path through `whisperOptions.
 	autoDownloadVadModelName?: 'silero-v5.1.2' | 'silero-v6.2.0'
 	whisperOptions?: WhisperOptions
 	logger?: Console
+	backend?: 'auto' | 'native' | 'cli'
 }
 
  interface WhisperOptions {
+	threads?: number
 	outputInCsv?: boolean
 	outputInJson?: boolean
 	outputInJsonFull?: boolean
@@ -225,53 +244,9 @@ set `whisperOptions.vad` to `true` and provide its path through `whisperOptions.
 
 ```
 
-## Run locally
+## Development
 
-Clone the project
-
-```bash
-  git clone https://github.com/ChetanXpro/nodejs-whisper
-```
-
-Go to the project directory
-
-```bash
-  cd nodejs-whisper
-```
-
-Install dependencies
-
-```bash
-  npm install
-```
-
-Start the server
-
-```bash
-  npm run dev
-```
-
-Build project
-
-```bash
-npm run build
-```
-
-Run the fast unit suite
-
-```bash
-npm test
-```
-
-Run the end-to-end transcription test
-
-```bash
-npm run test:integration
-```
-
-The integration test downloads and builds `tiny.en` when needed, downloads the Silero VAD model, transcribes the
-bundled audio sample with VAD enabled, verifies the returned transcript and VTT file, and checks that whisper.cpp
-output is routed through the configured logger.
+See the [development guide](docs/development.md) for local setup, tests, native builds, and packaging.
 
 ## Made with
 

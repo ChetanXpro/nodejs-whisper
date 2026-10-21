@@ -1,4 +1,7 @@
 node_modules
 dist
 .env
+build/
+prebuilds/
+*.tgz
 example/mother_teresa.wav.vtt

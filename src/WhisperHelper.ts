@@ -1,31 +1,19 @@
 import path from 'path'
 import fs from 'fs'
 import { isModelName, LEGACY_MODEL_FILES, MODELS_LIST, MODEL_OBJECT, WHISPER_CPP_PATH } from './constants'
-import { IOptions } from '.'
+import type { IOptions } from '.'
 
-// Get the correct executable path based on platform and build system
-function getExecutablePath(): string {
-	const execName = process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
-
-	// Check common CMake build locations
-	const possiblePaths = [
-		path.join(WHISPER_CPP_PATH, 'build', 'bin', execName), // Unix CMake
-		path.join(WHISPER_CPP_PATH, 'build', 'bin', 'Release', execName), // Windows CMake Release
-		path.join(WHISPER_CPP_PATH, 'build', 'bin', 'Debug', execName), // Windows CMake Debug
-		path.join(WHISPER_CPP_PATH, 'build', execName), // Alternative location
-		path.join(WHISPER_CPP_PATH, execName), // Root directory
-	]
-
-	for (const execPath of possiblePaths) {
-		if (fs.existsSync(execPath)) {
-			return execPath
-		}
-	}
-
-	return '' // Not found
-}
+import { getWhisperExecutablePath } from './whisper'
 
 export const constructCommand = (filePath: string, args: IOptions): string => {
+	const modelPath = resolveModelPath(args)
+	validateWhisperOptions(args)
+	const executablePath = getWhisperExecutablePath(args.withCuda)
+	if (!executablePath) throw new Error('[Nodejs-whisper] Error: whisper-cli executable not found')
+	return `${escapeArg(executablePath)} ${constructOptionsFlags(args)} -l ${escapeArg(args.whisperOptions?.language || 'auto')} -m ${escapeArg(modelPath)} -f ${escapeArg(filePath)}`
+}
+
+export const resolveModelPath = (args: IOptions): string => {
 	if (!args.modelName) {
 		throw new Error('[Nodejs-whisper] Error: Provide model name')
 	}
@@ -50,22 +38,13 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 		)
 	}
 
-	// Get the actual executable path
-	const executablePath = getExecutablePath()
-	if (!executablePath) {
-		throw new Error('[Nodejs-whisper] Error: whisper-cli executable not found')
-	}
-
-	const modelArg = args.modelRootPath ? modelPath : `./models/${modelFileName}`
-
-	let command = `${escapeArg(executablePath)} ${constructOptionsFlags(args)} -l ${args.whisperOptions?.language || 'auto'} -m ${escapeArg(modelArg)} -f ${escapeArg(filePath)}`
-
-	return command
+	return fs.realpathSync(modelPath)
 }
 
 const constructOptionsFlags = (args: IOptions): string => {
 	const vadFlags = constructVadFlags(args)
 	let flags = [
+		args.whisperOptions?.threads ? `-t ${args.whisperOptions.threads} ` : '',
 		args.whisperOptions?.outputInCsv ? '-ocsv ' : '',
 		args.whisperOptions?.outputInJson ? '-oj ' : '',
 		args.whisperOptions?.outputInJsonFull ? '-ojf ' : '',
@@ -85,6 +64,42 @@ const constructOptionsFlags = (args: IOptions): string => {
 	return flags.trim()
 }
 
+export const validateWhisperOptions = (args: IOptions): void => {
+	const options = args.whisperOptions
+	if (!options) return
+	for (const key of [
+		'outputInCsv',
+		'outputInJson',
+		'outputInJsonFull',
+		'outputInLrc',
+		'outputInSrt',
+		'outputInText',
+		'outputInVtt',
+		'outputInWords',
+		'translateToEnglish',
+		'wordTimestamps',
+		'splitOnWord',
+		'noGpu',
+		'vad',
+	] as const) {
+		if (options[key] !== undefined && typeof options[key] !== 'boolean') {
+			throw new TypeError(`[Nodejs-whisper] whisperOptions.${key} must be a boolean`)
+		}
+	}
+	if (options.vadModelPath !== undefined && typeof options.vadModelPath !== 'string') {
+		throw new TypeError('[Nodejs-whisper] whisperOptions.vadModelPath must be a string')
+	}
+	validateNumber('threads', options.threads, 1, 2147483647, true)
+	validateNumber('timestamps_length', options.timestamps_length, 0, 2147483647, true)
+	if (
+		options.language !== undefined &&
+		(typeof options.language !== 'string' || !/^[a-zA-Z-]+$/.test(options.language))
+	) {
+		throw new TypeError('[Nodejs-whisper] Invalid language; expected a language code string')
+	}
+	constructVadFlags(args)
+}
+
 const constructVadFlags = (args: IOptions): string => {
 	const options = args.whisperOptions
 	if (!options?.vad) {
@@ -96,15 +111,15 @@ const constructVadFlags = (args: IOptions): string => {
 	}
 
 	const vadModelPath = path.resolve(options.vadModelPath)
-	if (!fs.existsSync(vadModelPath)) {
+	if (!fs.existsSync(vadModelPath) || !fs.statSync(vadModelPath).isFile()) {
 		throw new Error(`[Nodejs-whisper] Error: VAD model file does not exist at ${vadModelPath}.`)
 	}
 
 	validateNumber('vadThreshold', options.vadThreshold, 0, 1)
-	validateNumber('vadMinSpeechDurationMs', options.vadMinSpeechDurationMs, 0, undefined, true)
-	validateNumber('vadMinSilenceDurationMs', options.vadMinSilenceDurationMs, 0, undefined, true)
+	validateNumber('vadMinSpeechDurationMs', options.vadMinSpeechDurationMs, 0, 2147483647, true)
+	validateNumber('vadMinSilenceDurationMs', options.vadMinSilenceDurationMs, 0, 2147483647, true)
 	validateNumber('vadMaxSpeechDurationS', options.vadMaxSpeechDurationS, Number.MIN_VALUE)
-	validateNumber('vadSpeechPadMs', options.vadSpeechPadMs, 0, undefined, true)
+	validateNumber('vadSpeechPadMs', options.vadSpeechPadMs, 0, 2147483647, true)
 	validateNumber('vadSamplesOverlap', options.vadSamplesOverlap, 0)
 
 	return [
@@ -124,6 +139,9 @@ const validateNumber = (name: string, value: number | undefined, min: number, ma
 	if (value === undefined) {
 		return
 	}
+	if (typeof value !== 'number') {
+		throw new TypeError(`[Nodejs-whisper] whisperOptions.${name} must be a number`)
+	}
 
 	if (
 		!Number.isFinite(value) ||
@@ -140,7 +158,8 @@ const validateNumber = (name: string, value: number | undefined, min: number, ma
 
 const escapeArg = (arg: string) => {
 	if (process.platform === 'win32') {
-		return `"${arg.replace(/"/g, '\\"')}"`
+		if (/["%\r\n]/.test(arg)) throw new Error('Unsupported characters in Windows CLI argument')
+		return `"${arg}"`
 	}
-	return `"${arg}"`
+	return "'" + arg.replace(/'/g, "'\"'\"'") + "'"
 }

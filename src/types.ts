@@ -1,4 +1,6 @@
 export interface WhisperOptions {
+	/** CPU threads per transcription. Defaults to the runtime's threadsPerWorker. */
+	threads?: number
 	outputInCsv?: boolean
 	outputInJson?: boolean
 	outputInJsonFull?: boolean
@@ -27,4 +29,18 @@ export interface Logger {
 	debug: (...args: any[]) => void
 	error: (...args: any[]) => void
 	log: (...args: any[]) => void
+}
+
+export interface WhisperRuntimeOptions {
+	/** Maximum active requests and resident native contexts. Default: 1. */
+	maxConcurrency?: number
+	/** Maximum waiting requests; excess calls reject immediately. Default: 100. */
+	maxQueue?: number
+	/** Release idle workers after this interval; 0 retains them until disposal. Default: 60000. */
+	idleTimeoutMs?: number
+	/** Maximum queue wait; 0 disables the timeout. Default: 0. */
+	queueTimeoutMs?: number
+	/** CPU threads per inference. Default: up to 4, divided across workers. */
+	threadsPerWorker?: number
+	backend?: 'auto' | 'native' | 'cli'
 }

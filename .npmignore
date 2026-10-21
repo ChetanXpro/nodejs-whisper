@@ -1,0 +1,8 @@
+node_modules/
+build/
+cpp/whisper.cpp/build*/
+cpp/whisper.cpp/models/*.bin
+**/.git
+**/.git/**
+**/node_modules/
+*.tgz
