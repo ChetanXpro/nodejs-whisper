@@ -25,7 +25,7 @@
 		"format": "prettier --write 'src/**/*.ts' 'test/**/*.js' 'scripts/**/*.js'",
 		"install": "node scripts/build-native.js --optional",
 		"build:native": "node scripts/build-native.js",
-		"test:native": "npm run build && npm run test:native:diagnostics && node --test test/native.integration.js",
+		"test:native": "npm run build && npm run test:native:diagnostics && node --test --test-reporter=tap test/native.integration.js",
 		"test:native:diagnostics": "cmake --build build/default --config Release --target nodejs_whisper_diagnostics_test && ctest --test-dir build/default -C Release -R nodejs_whisper_diagnostics --output-on-failure",
 		"prepack": "npm run build",
 		"package:native": "node scripts/package-native.js"

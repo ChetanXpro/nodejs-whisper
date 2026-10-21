@@ -9,6 +9,11 @@ set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(WHISPER_BUILD_SERVER OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "Portable CPU binaries")
 set(GGML_METAL_EMBED_LIBRARY ON CACHE BOOL "" FORCE)
+if(WIN32)
+    # Node workers unload the addon on exit. ggml's own thread pool joins its
+    # threads during cleanup; OpenMP threads can outlive the Windows DLL.
+    set(GGML_OPENMP OFF CACHE BOOL "Use joined CPU threads in Windows workers" FORCE)
+endif()
 add_subdirectory(../cpp/whisper.cpp whisper)
 
 execute_process(COMMAND node -p "require('node-addon-api').include"
