@@ -35,7 +35,7 @@ export async function convertToWavType(inputFilePath: string, logger: Logger = c
 		? inputFilePath
 		: path.join(path.dirname(inputFilePath), path.basename(inputFilePath, extension) + '.wav')
 	const temporaryPath = `${outputPath}.${randomUUID()}.temp.wav`
-	logger.debug('[Nodejs-whisper] Converting audio to 16 kHz WAV:', inputFilePath)
+	logger.debug(`[Nodejs-whisper] Converting audio to 16 kHz WAV: ${inputFilePath}`)
 	try {
 		await runProcess(
 			'ffmpeg',

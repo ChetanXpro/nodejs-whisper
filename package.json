@@ -67,6 +67,7 @@
 		"@types/readline-sync": "^1.4.4",
 		"@types/shelljs": "^0.8.12",
 		"nodemon": "3.1.10",
+		"pino": "^9.14.0",
 		"prettier": "^3.0.0",
 		"ts-node": "^10.8.2",
 		"typescript": "^5.1.6"

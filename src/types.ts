@@ -28,7 +28,9 @@ export interface WhisperOptions {
 export interface Logger {
 	debug: (...args: any[]) => void
 	error: (...args: any[]) => void
-	log: (...args: any[]) => void
+	info?: (...args: any[]) => void
+	/** Legacy fallback when info is absent. */
+	log?: (...args: any[]) => void
 }
 
 export interface WhisperRuntimeOptions {

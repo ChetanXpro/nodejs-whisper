@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict')
 const test = require('node:test')
+const pino = require('pino')
 const fs = require('node:fs/promises')
 const os = require('node:os')
 const path = require('node:path')
@@ -44,6 +45,29 @@ const plain = text =>
 		.toLowerCase()
 const loads = events =>
 	events.filter(([level, text]) => level === 'debug' && text.includes('whisper_init_with_params_no_state:'))
+
+test(
+	'native inference accepts Pino without log and emits transcript, diagnostics and errors',
+	{ timeout: 90000 },
+	async t => {
+		const { audio } = await fixture(t)
+		const records = []
+		const logger = pino({ level: 'debug' }, { write: line => records.push(JSON.parse(line)) }).child({
+			request: 'native',
+		})
+		assert.equal(logger.log, undefined)
+		const transcript = await nodewhisper(audio, { ...options, logger })
+		assert.match(plain(transcript), /what you can do for your country/)
+		assert.ok(records.some(record => record.level === 30 && /country/i.test(record.msg)))
+		assert.ok(records.some(record => record.level === 20 && record.msg.includes('ggml-tiny.en.bin')))
+		await assert.rejects(
+			nodewhisper(audio, { ...options, logger, whisperOptions: { noGpu: true, language: 'invalid' } }),
+			/Unknown language/
+		)
+		assert.ok(records.some(record => record.level === 50 && record.msg.includes('Unknown language')))
+		assert.ok(records.every(record => record.request === 'native'))
+	}
+)
 
 test(
 	'existing API selects native, reuses its model, exports files, and keeps the event loop responsive',

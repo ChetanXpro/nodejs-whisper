@@ -87,8 +87,9 @@ Native workers share Node's process, so a fatal native crash can terminate it. S
 process isolation is needed. Request options and prompt history reset between transcriptions; sampling can
 still produce different text across runs.
 
-Transcript segments reach `logger.log` during inference. Native diagnostics are buffered and sent to
-`logger.debug`; fallback reasons are logged there too. The CLI streams both kinds of output.
+Transcript segments reach `logger.info` during inference (`log` is supported for older custom loggers).
+Native diagnostics are buffered and sent to `logger.debug`; fallback reasons are logged there too. The CLI
+streams both kinds of output.
 
 Logs from whisper/ggml's internal threads have no context ID. These messages use a synchronized shared buffer
 and are delivered by the next worker to flush its logs, labelled `[shared native backend diagnostics]`.

@@ -38,7 +38,7 @@ port.on('message', (message: { type: string; filePath: string; options: WhisperO
 		}
 		let firstSegment = true
 		const result: NativeResult = context.transcribe(audio, message.options, (segment: Segment) => {
-			port.postMessage({ type: 'log', message: (firstSegment ? '\n' : '') + formatSegment(segment) })
+			port.postMessage({ type: 'info', message: (firstSegment ? '\n' : '') + formatSegment(segment) })
 			firstSegment = false
 		})
 		flushLogs()

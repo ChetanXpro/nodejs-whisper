@@ -111,8 +111,8 @@ const MODELS_LIST = [
 ]
 ```
 
-The configured logger receives transcript segments through `logger.log`, diagnostics through `logger.debug`,
-and failures through `logger.error`.
+The configured logger receives transcript segments through `info`, diagnostics through `debug`, and failures
+through `error`. Console and Pino loggers work directly.
 
 ### Model reuse and concurrency
 
@@ -213,7 +213,7 @@ set `whisperOptions.vad` to `true` and provide its path through `whisperOptions.
 	autoDownloadModelName?: string
 	autoDownloadVadModelName?: 'silero-v5.1.2' | 'silero-v6.2.0'
 	whisperOptions?: WhisperOptions
-	logger?: Console
+	logger?: Logger
 	backend?: 'auto' | 'native' | 'cli'
 }
 

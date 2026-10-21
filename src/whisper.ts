@@ -4,6 +4,7 @@ import fs from 'fs'
 import { WHISPER_CPP_PATH } from './constants'
 import { Logger } from './types'
 import { getCmakeConfigureCommand } from './buildConfig'
+import { normalizeLogger } from './logger'
 
 export interface IShellOptions {
 	silent: boolean
@@ -25,6 +26,7 @@ export function whisperShell(
 	logger: Logger = console,
 	projectDir: string = process.cwd()
 ): Promise<string> {
+	const log = normalizeLogger(logger)
 	return new Promise<string>((resolve, reject) => {
 		const child = spawn(command, {
 			cwd: projectDir,
@@ -36,11 +38,11 @@ export function whisperShell(
 			stderr = ''
 		child.stdout.on('data', data => {
 			stdout += data.toString()
-			logger.log(data.toString())
+			log.info(data.toString())
 		})
 		child.stderr.on('data', data => {
 			stderr = (stderr + data.toString()).slice(-65_536)
-			logger.debug(data.toString())
+			log.debug(data.toString())
 		})
 		child.on('error', reject)
 		child.on('close', code => {
@@ -48,7 +50,7 @@ export function whisperShell(
 			else reject(new Error(stderr || stdout || `Command failed with exit code ${code}`))
 		})
 	}).catch(error => {
-		logger.error('[Nodejs-whisper] Error:', error.message)
+		log.error(`[Nodejs-whisper] Error: ${error.message}`)
 		throw error
 	})
 }
@@ -62,7 +64,7 @@ export async function ensureWhisperExecutable(logger: Logger = console, withCuda
 	const building = (async () => {
 		const buildLogger = {
 			debug: (...args: any[]) => logger.debug(...args),
-			log: (...args: any[]) => logger.debug(...args),
+			info: (...args: any[]) => logger.debug(...args),
 			error: (...args: any[]) => logger.error(...args),
 		}
 		await whisperShell(getCmakeConfigureCommand(withCuda, buildDirectory), undefined, buildLogger, WHISPER_CPP_PATH)

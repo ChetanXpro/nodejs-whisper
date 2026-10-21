@@ -11,6 +11,7 @@ import { findNativeAddon } from './native'
 import { formatSegment, writeOutputs } from './output'
 import { runWhisperTask } from './runtime'
 import { WhisperRuntimeError } from './taskPool'
+import { normalizeLogger } from './logger'
 
 export type { VadModelName } from './constants'
 export type { Logger, WhisperOptions, WhisperRuntimeOptions } from './types'
@@ -33,7 +34,7 @@ export interface IOptions {
 const unavailableAddons = new Map<string, string>()
 
 export async function nodewhisper(filePath: string, options: IOptions): Promise<string> {
-	const logger = options.logger || console
+	const logger = normalizeLogger(options.logger || console)
 	// Snapshot options and resolve relative paths at submission time.
 	const inputPath = path.resolve(filePath)
 	const runtimeOptions: IOptions & { whisperOptions: WhisperOptions } = {
@@ -108,7 +109,7 @@ export async function nodewhisper(filePath: string, options: IOptions): Promise<
 						!runtimeOptions.whisperOptions.noGpu,
 						!!runtimeOptions.withCuda
 					)
-					logger.debug('[Nodejs-whisper] Transcribing with native backend:', modelPath)
+					logger.debug(`[Nodejs-whisper] Transcribing with native backend: ${modelPath}`)
 					try {
 						const result = await worker.transcribe(outputPath, runtimeOptions.whisperOptions, logger)
 						await writeOutputs(outputPath, modelPath, runtimeOptions.whisperOptions, result)
@@ -121,16 +122,16 @@ export async function nodewhisper(filePath: string, options: IOptions): Promise<
 						)
 							throw error
 						unavailableAddons.set(addonPath, error.message)
-						logger.debug('[Nodejs-whisper] Falling back to CLI:', error.message)
+						logger.debug(`[Nodejs-whisper] Falling back to CLI: ${error.message}`)
 						await slot.close()
 					}
-				} else logger.debug('[Nodejs-whisper] Falling back to CLI:', fallbackReason)
+				} else logger.debug(`[Nodejs-whisper] Falling back to CLI: ${fallbackReason}`)
 			}
 			if (transcript === undefined) {
 				await slot.close()
 				await ensureWhisperExecutable(logger, runtimeOptions.withCuda)
 				const command = constructCommand(outputPath, runtimeOptions)
-				logger.debug('[Nodejs-whisper] Executing command:', command)
+				logger.debug(`[Nodejs-whisper] Executing command: ${command}`)
 				transcript = await executeCppCommand(command, logger, runtimeOptions.withCuda)
 			}
 			if (!transcript) throw new Error('Transcription failed or produced no output.')
