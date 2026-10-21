@@ -54,6 +54,15 @@ let pool = createPool()
 let disposing: Promise<void> | undefined
 let configuring = false
 
+// Release native contexts before backend globals are destroyed at process exit.
+process.on('beforeExit', () => {
+	if (configuring || disposing || pool.resources.length === 0) return
+	void disposeWhisper().catch(error => {
+		console.error('[Nodejs-whisper] Failed to release native workers:', error)
+		if (!process.exitCode) process.exitCode = 1
+	})
+})
+
 export function runWhisperTask<T>(
 	key: string,
 	lock: string,

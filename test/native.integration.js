@@ -183,7 +183,8 @@ test('failed inference does not poison the queue or keep an idle process alive',
 	)
 	assert.match(plain(await nodewhisper(audio, { ...options, logger })), /country/)
 	await disposeWhisper()
-	const script = `const {nodewhisper} = require(${JSON.stringify(path.resolve(__dirname, '../dist'))});
+	const script = `const {nodewhisper, getWhisperStatus} = require(${JSON.stringify(path.resolve(__dirname, '../dist'))});
+		process.on('exit', () => require('node:assert/strict').equal(getWhisperStatus().workers, 0));
 		nodewhisper(${JSON.stringify(audio)}, ${JSON.stringify(options)}).then(() => console.log('completed')).catch(e => {console.error(e); process.exitCode=1})`
 	const { stdout } = await promisify(execFile)(process.execPath, ['-e', script], { timeout: 30000 })
 	assert.match(stdout, /completed/)
