@@ -33,6 +33,10 @@ jobs:
     - name: Build native addon
       run: npm run build:native
 
+    - name: Prepare test models
+      timeout-minutes: 10
+      run: npm run test:models
+
     - name: Run native integration tests
       run: npm run test:native
 

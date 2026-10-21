@@ -125,6 +125,15 @@ test(
 		const { directory, events, logger } = await fixture(t)
 		const audio = path.join(directory, 'vad.wav')
 		await fs.copyFile(motherTeresa, audio)
+		const transcribe = async (phase, requestOptions) => {
+			t.signal.throwIfAborted()
+			const started = Date.now()
+			try {
+				return await nodewhisper(audio, requestOptions)
+			} finally {
+				t.diagnostic(`${phase}: ${Date.now() - started}ms`)
+			}
+		}
 		const vadOptions = {
 			...options,
 			logger,
@@ -139,7 +148,7 @@ test(
 			},
 		}
 		for (let i = 0; i < 2; i++) {
-			const result = await nodewhisper(audio, vadOptions)
+			const result = await transcribe(i === 0 ? 'Initial VAD inference' : 'Reused VAD inference', vadOptions)
 			assert.match(plain(result), /i do not want.*your money/)
 		}
 		assert.equal(loads(events).length, 1)
@@ -153,7 +162,7 @@ test(
 		)
 		assert.match(
 			plain(
-				await nodewhisper(audio, {
+				await transcribe('Custom VAD model inference', {
 					...options,
 					logger,
 					whisperOptions: { noGpu: true, vad: true, vadModelPath: customVad },
@@ -162,7 +171,7 @@ test(
 			/i do not want/
 		)
 		assert.equal(loads(events).length, 2)
-		await nodewhisper(audio, { ...options, logger })
+		await transcribe('VAD disabled inference', { ...options, logger })
 		assert.equal(loads(events).length, 3)
 	}
 )
