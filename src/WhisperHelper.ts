@@ -10,7 +10,7 @@ export const constructCommand = (filePath: string, args: IOptions): string => {
 	validateWhisperOptions(args)
 	const executablePath = getWhisperExecutablePath(args.withCuda)
 	if (!executablePath) throw new Error('[Nodejs-whisper] Error: whisper-cli executable not found')
-	return `${escapeArg(executablePath)} ${constructOptionsFlags(args)} -l ${escapeArg(args.whisperOptions?.language || 'auto')} -m ${escapeArg(modelPath)} -f ${escapeArg(filePath)}`
+	return `${escapeArg(executablePath)} ${constructOptionsArgs(args).map(escapeOption).join(' ')} -l ${escapeArg(args.whisperOptions?.language || 'auto')} -m ${escapeArg(modelPath)} -f ${escapeArg(filePath)}`
 }
 
 export const resolveModelPath = (args: IOptions): string => {
@@ -41,27 +41,41 @@ export const resolveModelPath = (args: IOptions): string => {
 	return fs.realpathSync(modelPath)
 }
 
-const constructOptionsFlags = (args: IOptions): string => {
-	const vadFlags = constructVadFlags(args)
-	let flags = [
-		args.whisperOptions?.threads ? `-t ${args.whisperOptions.threads} ` : '',
-		args.whisperOptions?.outputInCsv ? '-ocsv ' : '',
-		args.whisperOptions?.outputInJson ? '-oj ' : '',
-		args.whisperOptions?.outputInJsonFull ? '-ojf ' : '',
-		args.whisperOptions?.outputInLrc ? '-olrc ' : '',
-		args.whisperOptions?.outputInSrt ? '-osrt ' : '',
-		args.whisperOptions?.outputInText ? '-otxt ' : '',
-		args.whisperOptions?.outputInVtt ? '-ovtt ' : '',
-		args.whisperOptions?.outputInWords ? '-owts ' : '',
-		args.whisperOptions?.translateToEnglish ? '-tr ' : '',
-		args.whisperOptions?.wordTimestamps ? '-ml 1 ' : '',
-		args.whisperOptions?.timestamps_length ? `-ml ${args.whisperOptions.timestamps_length} ` : '',
-		args.whisperOptions?.splitOnWord ? '-sow ' : '',
-		args.whisperOptions?.noGpu ? '-ng ' : '',
-		vadFlags,
-	].join('')
+export const constructArguments = (filePath: string, args: IOptions): string[] => {
+	validateWhisperOptions(args)
+	return [
+		...constructOptionsArgs(args),
+		'-l',
+		args.whisperOptions?.language || 'auto',
+		'-m',
+		resolveModelPath(args),
+		'-f',
+		filePath,
+	]
+}
 
-	return flags.trim()
+const constructOptionsArgs = (args: IOptions): string[] => {
+	const options = args.whisperOptions || {}
+	const flags: string[] = []
+	if (options.threads) flags.push('-t', String(options.threads))
+	for (const [key, flag] of Object.entries({
+		outputInCsv: '-ocsv',
+		outputInJson: '-oj',
+		outputInJsonFull: '-ojf',
+		outputInLrc: '-olrc',
+		outputInSrt: '-osrt',
+		outputInText: '-otxt',
+		outputInVtt: '-ovtt',
+		outputInWords: '-owts',
+		translateToEnglish: '-tr',
+	})) {
+		if (options[key as keyof typeof options]) flags.push(flag)
+	}
+	if (options.wordTimestamps) flags.push('-ml', '1')
+	if (options.timestamps_length) flags.push('-ml', String(options.timestamps_length))
+	if (options.splitOnWord) flags.push('-sow')
+	if (options.noGpu) flags.push('-ng')
+	return [...flags, ...constructVadFlags(args)]
 }
 
 export const validateWhisperOptions = (args: IOptions): void => {
@@ -100,10 +114,10 @@ export const validateWhisperOptions = (args: IOptions): void => {
 	constructVadFlags(args)
 }
 
-const constructVadFlags = (args: IOptions): string => {
+const constructVadFlags = (args: IOptions): string[] => {
 	const options = args.whisperOptions
 	if (!options?.vad) {
-		return ''
+		return []
 	}
 
 	if (!options.vadModelPath) {
@@ -123,17 +137,20 @@ const constructVadFlags = (args: IOptions): string => {
 	validateNumber('vadSamplesOverlap', options.vadSamplesOverlap, 0)
 
 	return [
-		`--vad -vm ${escapeArg(vadModelPath)} `,
-		optionFlag('-vt', options.vadThreshold),
-		optionFlag('-vspd', options.vadMinSpeechDurationMs),
-		optionFlag('-vsd', options.vadMinSilenceDurationMs),
-		optionFlag('-vmsd', options.vadMaxSpeechDurationS),
-		optionFlag('-vp', options.vadSpeechPadMs),
-		optionFlag('-vo', options.vadSamplesOverlap),
-	].join('')
+		'--vad',
+		'-vm',
+		vadModelPath,
+		...optionFlag('-vt', options.vadThreshold),
+		...optionFlag('-vspd', options.vadMinSpeechDurationMs),
+		...optionFlag('-vsd', options.vadMinSilenceDurationMs),
+		...optionFlag('-vmsd', options.vadMaxSpeechDurationS),
+		...optionFlag('-vp', options.vadSpeechPadMs),
+		...optionFlag('-vo', options.vadSamplesOverlap),
+	]
 }
 
-const optionFlag = (flag: string, value?: number): string => (value === undefined ? '' : `${flag} ${value} `)
+const optionFlag = (flag: string, value?: number): string[] => (value === undefined ? [] : [flag, String(value)])
+const escapeOption = (value: string) => (/^[-\w.]+$/.test(value) ? value : escapeArg(value))
 
 const validateNumber = (name: string, value: number | undefined, min: number, max?: number, integer = false) => {
 	if (value === undefined) {

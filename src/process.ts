@@ -1,18 +1,65 @@
 import { spawn } from 'child_process'
 import { Logger } from './types'
+import { checkSignal } from './control'
 
-export function runProcess(command: string, args: string[], logger: Logger, cwd?: string): Promise<void> {
+export interface ProcessOptions {
+	cwd?: string
+	signal?: AbortSignal
+	onStdout?: (text: string) => void
+	onStderr?: (text: string) => void
+}
+
+export function runProcess(
+	command: string,
+	args: string[],
+	logger: Logger,
+	options: ProcessOptions = {}
+): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const child = spawn(command, args, { cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
+		checkSignal(options.signal)
+		const child = spawn(command, args, { cwd: options.cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
 		let diagnostics = ''
-		child.stdout.on('data', chunk => logger.debug(chunk.toString()))
-		child.stderr.on('data', chunk => {
-			diagnostics = (diagnostics + chunk.toString()).slice(-16_384)
-			logger.debug(chunk.toString())
+		let failure: Error | undefined
+		let killTimer: NodeJS.Timeout | undefined
+		const stop = (error: unknown) => {
+			if (failure) return
+			failure = error instanceof Error ? error : new Error(String(error))
+			child.kill()
+			killTimer = setTimeout(() => child.kill('SIGKILL'), 1000)
+			killTimer.unref()
+		}
+		const abort = () => stop(options.signal!.reason)
+		options.signal?.addEventListener('abort', abort, { once: true })
+		child.stdout.setEncoding('utf8')
+		child.stderr.setEncoding('utf8')
+		child.stdout.on('data', (text: string) => {
+			if (failure) return
+			try {
+				if (options.onStdout) options.onStdout(text)
+				else logger.debug(text)
+			} catch (error) {
+				stop(error)
+			}
 		})
-		child.on('error', reject)
-		child.on('close', code =>
-			code === 0 ? resolve() : reject(new Error(`${command} failed (${code}): ${diagnostics}`))
-		)
+		child.stderr.on('data', (text: string) => {
+			diagnostics = (diagnostics + text).slice(-16_384)
+			if (failure) return
+			try {
+				logger.debug(text)
+				options.onStderr?.(text)
+			} catch (error) {
+				stop(error)
+			}
+		})
+		child.on('error', error => {
+			failure ??= error
+		})
+		child.on('close', code => {
+			clearTimeout(killTimer)
+			options.signal?.removeEventListener('abort', abort)
+			if (failure) reject(failure)
+			else if (code === 0) resolve()
+			else reject(new Error(`${command} failed (${code}): ${diagnostics}`))
+		})
 	})
 }

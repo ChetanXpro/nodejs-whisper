@@ -66,10 +66,11 @@ process.on('beforeExit', () => {
 export function runWhisperTask<T>(
 	key: string,
 	lock: string,
-	task: (slot: ExecutionSlot, config: Required<WhisperRuntimeOptions>) => Promise<T>
+	task: (slot: ExecutionSlot, config: Required<WhisperRuntimeOptions>) => Promise<T>,
+	signal?: AbortSignal
 ) {
 	const current = config
-	return pool.run(key, lock, slot => task(slot, current))
+	return pool.run(key, lock, slot => task(slot, current), signal)
 }
 
 /** Configure before starting work, or after all requests have completed. */

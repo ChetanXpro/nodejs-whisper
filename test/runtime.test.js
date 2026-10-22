@@ -177,3 +177,30 @@ test('configuration validates limits and disposal leaves a reusable runtime', as
 	assert.equal(getWhisperStatus().closing, false)
 	await configureWhisper({})
 })
+
+test('aborting a queued request frees capacity immediately, including during shutdown', async () => {
+	const { pool } = fixture({ maxQueue: 1 })
+	const gate = deferred()
+	const first = pool.run('model', 'first', () => gate.promise)
+	const controller = new AbortController()
+	let ran = false
+	const queued = pool.run(
+		'model',
+		'second',
+		async () => {
+			ran = true
+		},
+		controller.signal
+	)
+	const cancelled = assert.rejects(queued, { name: 'AbortError' })
+	assert.equal(pool.status.queued, 1)
+	controller.abort()
+	assert.equal(pool.status.queued, 0)
+	const next = pool.run('model', 'third', async () => 3)
+	const closed = pool.close()
+	gate.resolve()
+	await cancelled
+	assert.equal(await next, 3)
+	await Promise.all([first, closed])
+	assert.equal(ran, false)
+})

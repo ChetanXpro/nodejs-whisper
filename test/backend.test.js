@@ -5,6 +5,7 @@ const os = require('node:os')
 const path = require('node:path')
 const native = require('../src/native')
 const cli = require('../src/whisper')
+const childProcess = require('../src/process')
 const { nodewhisper, configureWhisper, disposeWhisper } = require('../src')
 
 // Exercise backend selection through the public API without requiring a compiler
@@ -15,11 +16,11 @@ test('auto falls back for missing/incompatible addons; forced native reports the
 		native.findNativeAddon,
 		cli.ensureWhisperExecutable,
 		cli.getWhisperExecutablePath,
-		cli.executeCppCommand,
+		childProcess.runProcess,
 	]
 	t.after(async () => {
 		await disposeWhisper()
-		;[native.findNativeAddon, cli.ensureWhisperExecutable, cli.getWhisperExecutablePath, cli.executeCppCommand] =
+		;[native.findNativeAddon, cli.ensureWhisperExecutable, cli.getWhisperExecutablePath, childProcess.runProcess] =
 			saved
 		await fs.rm(directory, { recursive: true, force: true })
 	})
@@ -44,9 +45,9 @@ test('auto falls back for missing/incompatible addons; forced native reports the
 		events = []
 	cli.ensureWhisperExecutable = async () => {}
 	cli.getWhisperExecutablePath = () => '/fake/whisper-cli'
-	cli.executeCppCommand = async command => {
-		commands.push(command)
-		return 'transcript'
+	childProcess.runProcess = async (command, args, logger, options) => {
+		commands.push({ command, args })
+		options.onStdout('transcript')
 	}
 	const logger = { debug: (...args) => events.push(args.join(' ')), log() {}, error() {} }
 	const options = { modelName: 'tiny.en', modelRootPath: directory, logger, whisperOptions: { noGpu: true } }

@@ -2,9 +2,10 @@ import fs from 'fs'
 import path from 'path'
 import { Worker } from 'worker_threads'
 import { Logger, WhisperOptions } from './types'
-import { NativeResult } from './output'
+import { NativeResult, Segment } from './output'
 import { WhisperRuntimeError } from './taskPool'
 import { LeveledLogger, normalizeLogger } from './logger'
+import { RequestControl } from './control'
 
 const nativePlatform: string = require('../scripts/native-platform')
 
@@ -12,6 +13,8 @@ type WorkerMessage =
 	| { type: 'info' | 'debug'; message: string }
 	| { type: 'error'; code: string; message: string }
 	| { type: 'result'; result: NativeResult }
+	| { type: 'segment'; segment: Segment }
+	| { type: 'progress'; progress: number }
 
 export function findNativeAddon(withCuda = false): string | undefined {
 	const root = path.join(__dirname, '..')
@@ -25,7 +28,13 @@ export function findNativeAddon(withCuda = false): string | undefined {
 
 export class NativeWorker {
 	private worker: Worker
-	private pending?: { resolve: (value: NativeResult) => void; reject: (error: Error) => void; logger: LeveledLogger }
+	private pending?: {
+		resolve: (value: NativeResult) => void
+		reject: (error: Error) => void
+		logger: LeveledLogger
+		control: RequestControl
+		unsubscribe: () => void
+	}
 	private exited: Promise<void>
 	private closed = false
 	private closePromise?: Promise<void>
@@ -47,6 +56,14 @@ export class NativeWorker {
 		this.worker.on('message', (message: WorkerMessage) => {
 			const pending = this.pending
 			if (!pending) return
+			if (message.type === 'segment') {
+				pending.control.segment(message.segment)
+				return
+			}
+			if (message.type === 'progress') {
+				pending.control.progress(Math.min(0.99, message.progress))
+				return
+			}
 			if (message.type === 'info' || message.type === 'debug') {
 				try {
 					pending.logger[message.type](message.message)
@@ -56,8 +73,10 @@ export class NativeWorker {
 				return
 			}
 			this.pending = undefined
+			pending.unsubscribe()
 			this.worker.unref()
-			if (message.type === 'error') pending.reject(new WhisperRuntimeError(message.code, message.message))
+			if (pending.control.signal.aborted) pending.reject(pending.control.signal.reason)
+			else if (message.type === 'error') pending.reject(new WhisperRuntimeError(message.code, message.message))
 			else if (message.type === 'result') pending.resolve(message.result)
 		})
 		this.worker.on('error', error => this.fail(error))
@@ -75,14 +94,30 @@ export class NativeWorker {
 		return !this.closed
 	}
 
-	transcribe(filePath: string, options: WhisperOptions, logger: Logger): Promise<NativeResult> {
+	transcribe(
+		filePath: string,
+		options: WhisperOptions,
+		logger: Logger,
+		control: RequestControl,
+		includeTokens = false
+	): Promise<NativeResult> {
 		if (this.closed) return Promise.reject(new Error('Whisper worker is closed'))
 		if (this.pending) return Promise.reject(new Error('Whisper worker is already busy'))
 		return new Promise((resolve, reject) => {
-			this.pending = { resolve, reject, logger: normalizeLogger(logger) }
+			control.check()
+			const cancellation = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT))
+			const cancel = () => Atomics.store(cancellation, 0, 1)
+			control.signal.addEventListener('abort', cancel, { once: true })
+			this.pending = {
+				resolve,
+				reject,
+				logger: normalizeLogger(logger),
+				control,
+				unsubscribe: () => control.signal.removeEventListener('abort', cancel),
+			}
 			this.worker.ref()
 			try {
-				this.worker.postMessage({ type: 'transcribe', filePath, options })
+				this.worker.postMessage({ type: 'transcribe', filePath, options, cancellation, includeTokens })
 			} catch (error) {
 				this.fail(error)
 			}
@@ -90,7 +125,12 @@ export class NativeWorker {
 	}
 
 	private fail(error: unknown) {
-		this.pending?.reject(error instanceof Error ? error : new Error(String(error)))
+		const pending = this.pending
+		if (pending) {
+			pending.unsubscribe()
+			const reason = pending.control.signal.aborted ? pending.control.signal.reason : error
+			pending.reject(reason instanceof Error ? reason : new Error(String(reason)))
+		}
 		this.pending = undefined
 		this.worker.unref()
 	}

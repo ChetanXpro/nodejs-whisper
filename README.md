@@ -114,6 +114,43 @@ const MODELS_LIST = [
 The configured logger receives transcript segments through `info`, diagnostics through `debug`, and failures
 through `error`. Console and Pino loggers work directly.
 
+### Structured results and callbacks
+
+Use `transcribeDetailed()` to get plain text, the detected language, and segments directly:
+
+```ts
+import { transcribeDetailed } from 'nodejs-whisper'
+
+const controller = new AbortController()
+const result = await transcribeDetailed(filePath, {
+    modelName: 'tiny.en',
+    autoDownloadModelName: 'tiny.en',
+    includeTokens: true,
+    signal: controller.signal,
+    onProgress: progress => console.info(`${Math.round(progress * 100)}%`),
+    onSegment: segment => console.info(segment.text),
+})
+
+console.info(result.text, result.language)
+console.info(result.segments) // [{ text, start, end, tokens? }]
+```
+
+Times are in milliseconds. `includeTokens` defaults to `false`. Each token has `text`, `id`, `probability`,
+and available `start`/`end` times. Tokens can be parts of words; probabilities are model scores, not accuracy
+guarantees. With VAD, token times are omitted because the engine reports them against trimmed audio.
+Segment times refer to the original input. File exports still require the `whisperOptions.outputIn*` options.
+
+`signal`, `onProgress`, and `onSegment` work with both APIs and backends. Progress runs from `0` to `1` and
+measures inference, not downloads or conversion. Short recordings may have few updates. Segment callbacks
+receive completed segments without tokens. Callbacks must be synchronous; throwing rejects the request
+with the same error.
+
+Call `controller.abort()` to cancel. The promise rejects with `name: 'AbortError'` and `code: 'ABORT_ERR'`.
+Queued requests are removed immediately; running inference and conversion stop before releasing their slot.
+Downloads, builds, model loading, and file writes already in progress finish before cancellation settles.
+
+If no segments are detected, `transcribeDetailed()` returns empty text and an empty segment array.
+
 ### Model reuse and concurrency
 
 The native backend keeps models loaded between requests. Existing `nodewhisper()` calls still return a
@@ -215,6 +252,9 @@ set `whisperOptions.vad` to `true` and provide its path through `whisperOptions.
 	whisperOptions?: WhisperOptions
 	logger?: Logger
 	backend?: 'auto' | 'native' | 'cli'
+	signal?: AbortSignal
+	onProgress?: (progress: number) => void
+	onSegment?: (segment: TranscriptionSegment) => void
 }
 
  interface WhisperOptions {

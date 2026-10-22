@@ -33,6 +33,39 @@ export interface Logger {
 	log?: (...args: any[]) => void
 }
 
+/** Times are milliseconds from the start of the input audio. */
+export interface TranscriptionToken {
+	text: string
+	id: number
+	/** Model token probability, not a calibrated accuracy score. */
+	probability: number
+	/** Milliseconds in the input audio; omitted when VAD is enabled or timing is unavailable. */
+	start?: number
+	end?: number
+}
+
+export interface TranscriptionSegment {
+	text: string
+	start: number
+	end: number
+	tokens?: TranscriptionToken[]
+}
+
+export interface TranscriptionResult {
+	/** Plain transcript without timestamp formatting. */
+	text: string
+	language: string
+	segments: TranscriptionSegment[]
+}
+
+export interface TranscriptionControls {
+	signal?: AbortSignal
+	/** Inference progress from 0 to 1. Callbacks must be synchronous. */
+	onProgress?: (progress: number) => void
+	/** Completed segments, before the whole file finishes. Callbacks must be synchronous. */
+	onSegment?: (segment: TranscriptionSegment) => void
+}
+
 export interface WhisperRuntimeOptions {
 	/** Maximum active requests and resident native contexts. Default: 1. */
 	maxConcurrency?: number

@@ -3,6 +3,7 @@ import path from 'path'
 import { randomUUID } from 'crypto'
 import { Logger } from './types'
 import { runProcess } from './process'
+import { checkSignal } from './control'
 
 export const checkIfFileExists = (filePath: string) => {
 	if (!fs.existsSync(filePath)) throw new Error(`[Nodejs-whisper] Error: No such file: ${filePath}`)
@@ -27,7 +28,12 @@ async function isValidWavHeader(filePath: string): Promise<boolean> {
 	}
 }
 
-export async function convertToWavType(inputFilePath: string, logger: Logger = console): Promise<string> {
+export async function convertToWavType(
+	inputFilePath: string,
+	logger: Logger = console,
+	signal?: AbortSignal
+): Promise<string> {
+	checkSignal(signal)
 	const extension = path.extname(inputFilePath)
 	const isWav = extension.toLowerCase() === '.wav'
 	if (isWav && (await isValidWavHeader(inputFilePath))) return inputFilePath
@@ -54,8 +60,10 @@ export async function convertToWavType(inputFilePath: string, logger: Logger = c
 				'pcm_s16le',
 				temporaryPath,
 			],
-			logger
+			logger,
+			{ signal }
 		)
+		checkSignal(signal)
 		await fs.promises.rename(temporaryPath, outputPath)
 		return outputPath
 	} finally {
