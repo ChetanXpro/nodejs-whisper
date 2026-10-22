@@ -278,6 +278,8 @@ test(
 				throw expected;
 			}), error => error === expected);
 			assert.equal(callbacks, 1, 'do not call JS again after the first callback failure');
+			const progressError = new Error('progress callback failed');
+			assert.throws(() => context.transcribe(longer, {threads: 2}, () => {}, () => { throw progressError }), error => error === progressError);
 			const result = context.transcribe(audio, {threads: 2}, () => {});
 			assert.match(result.segments.map(s => s.text).join(''), /country/i);
 			assert.throws(() => context.transcribe(audio, {threads: 2}, () => context.close()), /Cannot close a context during transcription/);
@@ -297,6 +299,10 @@ test('the native boundary validates types, numeric ranges and VAD paths', { time
 	const context = new addon.Context(path.resolve(__dirname, '../cpp/whisper.cpp/models/ggml-tiny.en.bin'), false)
 	t.after(() => context.close())
 	const samples = readWav(audio)
+	assert.throws(() => context.transcribe(samples, {}, () => {}, true), /progress callback/)
+	for (const flag of [new Uint8Array(1), new Int32Array(0), new Int32Array(2), {}]) {
+		assert.throws(() => context.transcribe(samples, {}, () => {}, undefined, flag), /cancellation flag/)
+	}
 	for (const [invalid, name] of [
 		[{ threads: '4' }, 'threads'],
 		[{ language: 123 }, 'language'],

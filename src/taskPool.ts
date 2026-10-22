@@ -1,3 +1,5 @@
+import { checkSignal } from './control'
+
 export interface PoolOptions {
 	maxConcurrency: number
 	maxQueue: number
@@ -29,6 +31,7 @@ interface Job<Resource> {
 	run: (resource: Resource) => Promise<() => void>
 	reject: (error: unknown) => void
 	timer?: NodeJS.Timeout
+	unsubscribe?: () => void
 }
 
 /** Bounds the whole request, including downloads, conversion and file exports. */
@@ -60,7 +63,12 @@ export class TaskPool<Resource> {
 		return this.slots.map(s => s.resource)
 	}
 
-	run<T>(key: string, lock: string, run: (resource: Resource) => Promise<T>): Promise<T> {
+	run<T>(key: string, lock: string, run: (resource: Resource) => Promise<T>, signal?: AbortSignal): Promise<T> {
+		try {
+			checkSignal(signal)
+		} catch (error) {
+			return Promise.reject(error)
+		}
 		if (this.closing)
 			return Promise.reject(new WhisperRuntimeError('ERR_WHISPER_CLOSING', 'Whisper is shutting down'))
 		const canStart =
@@ -75,24 +83,33 @@ export class TaskPool<Resource> {
 				key,
 				lock,
 				run: async resource => {
+					checkSignal(signal)
 					const value = await run(resource)
 					// Preserve this request's result type until the pool releases its slot.
 					return () => resolve(value)
 				},
 				reject,
 			}
+			const rejectQueued = (error: unknown) => {
+				const index = this.queue.indexOf(job)
+				if (index < 0) return // Active work owns cancellation until its resources are safe to reuse.
+				this.queue.splice(index, 1)
+				clearTimeout(job.timer)
+				job.unsubscribe?.()
+				reject(error)
+				this.drain()
+				this.notifyIdle()
+			}
+			const cancel = () => rejectQueued(signal!.reason)
+			job.unsubscribe = () => signal?.removeEventListener('abort', cancel)
+			signal?.addEventListener('abort', cancel, { once: true })
 			this.queue.push(job)
 			this.drain()
 			if (this.queue.includes(job) && this.options.queueTimeoutMs > 0) {
 				job.timer = setTimeout(() => {
-					const index = this.queue.indexOf(job)
-					if (index < 0) return
-					this.queue.splice(index, 1)
-					reject(
+					rejectQueued(
 						new WhisperRuntimeError('ERR_WHISPER_QUEUE_TIMEOUT', 'Timed out waiting for a Whisper worker')
 					)
-					this.drain()
-					this.notifyIdle()
 				}, this.options.queueTimeoutMs)
 			}
 		})
@@ -114,6 +131,7 @@ export class TaskPool<Resource> {
 			}
 			if (!slot) break
 			this.queue.splice(index, 1)
+			job.unsubscribe?.()
 			clearTimeout(job.timer)
 			clearTimeout(slot.timer)
 			slot.key = job.key

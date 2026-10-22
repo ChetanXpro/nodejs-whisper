@@ -38,6 +38,8 @@ jobs:
       run: npm run test:models
 
     - name: Run native integration tests
+      env:
+        NODEJS_WHISPER_CMAKE_ARGS: ${{ runner.os == 'macOS' && '-DGGML_NATIVE=OFF' || '' }}
       run: npm run test:native
 
     - name: Package native binary

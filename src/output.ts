@@ -1,5 +1,5 @@
 import fs from 'fs/promises'
-import { WhisperOptions } from './types'
+import { TranscriptionResult, TranscriptionSegment, WhisperOptions } from './types'
 
 export interface Segment {
 	text: string
@@ -13,6 +13,36 @@ export interface NativeResult {
 	language: string
 	systeminfo: string
 	model: Record<string, unknown>
+}
+
+export function detailedResult(
+	result: NativeResult,
+	includeTokens: boolean,
+	tokenTimestamps = true
+): TranscriptionResult {
+	return {
+		text: result.segments
+			.map(segment => segment.text)
+			.join('')
+			.trim(),
+		language: result.language,
+		segments: result.segments.map(({ text, start, end, tokens }) => {
+			const segment: TranscriptionSegment = { text, start, end }
+			if (includeTokens) {
+				segment.tokens = (tokens || [])
+					.filter(token => !/^\[_.*\]$/.test(token.text))
+					.map(token => ({
+						text: token.text,
+						id: token.id,
+						probability: token.p,
+						...(tokenTimestamps && token.start !== undefined && token.end !== undefined
+							? { start: token.start, end: token.end }
+							: {}),
+					}))
+			}
+			return segment
+		}),
+	}
 }
 
 export function timestamp(ms: number, comma = false): string {

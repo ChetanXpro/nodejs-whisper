@@ -11,6 +11,9 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 namespace {
 // Owner-thread messages remain local. Internal backend threads use a synchronized,
@@ -20,6 +23,17 @@ thread_local whisper_node::LogBuffer worker_logs;
 thread_local whisper_node::LogBuffer * log_owner = nullptr;
 std::once_flag logging_once;
 std::mutex load_mutex;
+
+// SharedArrayBuffer storage is owned by JS, so do not construct a std::atomic in it.
+// Use atomic machine loads compatible with the main thread's Atomics.store().
+bool cancelled(int32_t * flag) noexcept {
+    if (!flag) return false;
+#ifdef _MSC_VER
+    return _InterlockedCompareExchange(reinterpret_cast<volatile long *>(flag), 0, 0) != 0;
+#else
+    return __atomic_load_n(flag, __ATOMIC_RELAXED) != 0;
+#endif
+}
 
 void capture_log(ggml_log_level, const char * text, void *) noexcept {
     diagnostics.capture(log_owner, text);
@@ -66,6 +80,7 @@ public:
             InstanceMethod("transcribe", &Context::Transcribe),
             InstanceMethod("close", &Context::Close),
         }));
+        exports.Set("apiVersion", 2);
         exports.Set("takeLogs", Napi::Function::New(env, [](const Napi::CallbackInfo & info) {
             return Napi::String::New(info.Env(), diagnostics.take(worker_logs));
         }));
@@ -109,13 +124,26 @@ private:
             explicit BusyGuard(bool & value) : busy(value) { busy = true; }
             ~BusyGuard() { busy = false; }
         } guard(busy);
-        if (info.Length() != 3 || !info[0].IsTypedArray() ||
+        if (info.Length() < 3 || info.Length() > 5 || !info[0].IsTypedArray() ||
             info[0].As<Napi::TypedArray>().TypedArrayType() != napi_float32_array ||
             !info[1].IsObject() || info[1].IsNull() || info[1].IsArray() || !info[2].IsFunction()) {
             throw Napi::TypeError::New(env, "Expected Float32Array audio, options and a segment callback");
         }
         auto audio = info[0].As<Napi::Float32Array>();
         auto options = info[1].As<Napi::Object>();
+        Napi::Function progress;
+        int32_t * cancellation = nullptr;
+        if (info.Length() > 3 && !info[3].IsUndefined()) {
+            if (!info[3].IsFunction()) throw Napi::TypeError::New(env, "Expected a progress callback");
+            progress = info[3].As<Napi::Function>();
+        }
+        if (info.Length() > 4) {
+            if (!info[4].IsTypedArray() || info[4].As<Napi::TypedArray>().TypedArrayType() != napi_int32_array ||
+                info[4].As<Napi::TypedArray>().ElementLength() != 1) {
+                throw Napi::TypeError::New(env, "Expected a one-element Int32Array cancellation flag");
+            }
+            cancellation = info[4].As<Napi::Int32Array>().Data();
+        }
         if (audio.ElementLength() == 0 || audio.ElementLength() > INT32_MAX) {
             throw Napi::RangeError::New(env, "Invalid audio sample count");
         }
@@ -138,8 +166,8 @@ private:
         params.print_timestamps = false;
         params.max_len = static_cast<int>(number(options, "timestamps_length", 0, 0, INT32_MAX, true));
         if (boolean(options, "wordTimestamps") && params.max_len == 0) params.max_len = 1;
-        const bool full_json = boolean(options, "outputInJsonFull");
-        params.token_timestamps = params.max_len > 0 || full_json;
+        const bool include_tokens = boolean(options, "outputInJsonFull") || boolean(options, "includeTokens");
+        params.token_timestamps = params.max_len > 0 || include_tokens;
         params.split_on_word = boolean(options, "splitOnWord");
         params.vad = boolean(options, "vad");
         if (params.vad) {
@@ -166,23 +194,42 @@ private:
 
         struct CallbackState {
             Napi::Function function;
+            Napi::Function progress;
+            int32_t * cancellation;
             std::exception_ptr error;
             std::atomic<bool> aborted{false};
-            explicit CallbackState(Napi::Function cb) : function(cb) {}
-        } callback(info[2].As<Napi::Function>());
+            CallbackState(Napi::Function cb, Napi::Function progress, int32_t * cancellation)
+                : function(cb), progress(progress), cancellation(cancellation) {}
+            bool stopped() const noexcept {
+                return aborted.load(std::memory_order_relaxed) || cancelled(cancellation);
+            }
+        } callback(info[2].As<Napi::Function>(), progress, cancellation);
         params.abort_callback_user_data = &callback;
         params.abort_callback = [](void * data) noexcept {
-            return static_cast<CallbackState *>(data)->aborted.load(std::memory_order_relaxed);
+            return static_cast<CallbackState *>(data)->stopped();
+        };
+        params.progress_callback_user_data = &callback;
+        params.progress_callback = [](whisper_context *, whisper_state *, int progress, void * data) noexcept {
+            auto & state = *static_cast<CallbackState *>(data);
+            if (state.stopped() || state.progress.IsEmpty()) return;
+            try {
+                Napi::HandleScope scope(state.progress.Env());
+                state.progress.Call({Napi::Number::New(state.progress.Env(), progress / 100.0)});
+            } catch (...) {
+                state.error = std::current_exception();
+                state.aborted.store(true, std::memory_order_relaxed);
+            }
         };
         params.new_segment_callback_user_data = &callback;
         params.new_segment_callback = [](whisper_context * context, whisper_state *, int count, void * data) noexcept {
             auto & state = *static_cast<CallbackState *>(data);
-            if (state.aborted.load(std::memory_order_relaxed)) return;
+            if (state.stopped()) return;
             try {
                 auto & cb = state.function;
                 Napi::HandleScope scope(cb.Env());
                 int end = whisper_full_n_segments(context);
                 for (int i = end - count; i < end; ++i) {
+                    if (state.stopped()) break;
                     auto segment = Napi::Object::New(cb.Env());
                     segment.Set("text", whisper_full_get_segment_text(context, i));
                     segment.Set("start", Napi::Number::New(cb.Env(), whisper_full_get_segment_t0(context, i) * 10));
@@ -194,6 +241,7 @@ private:
                 state.aborted.store(true, std::memory_order_relaxed);
             }
         };
+        if (callback.stopped()) throw Napi::Error::New(env, "Transcription aborted");
         int result = whisper_full(ctx.get(), params, audio.Data(), static_cast<int>(audio.ElementLength()));
         if (callback.error) {
             try {
@@ -203,9 +251,10 @@ private:
             } catch (const std::exception & error) {
                 throw Napi::Error::New(env, error.what());
             } catch (...) {
-                throw Napi::Error::New(env, "Native segment callback failed");
+                throw Napi::Error::New(env, "Native callback failed");
             }
         }
+        if (cancelled(cancellation)) throw Napi::Error::New(env, "Transcription aborted");
         if (result != 0) throw Napi::Error::New(env, "Whisper transcription failed (code " + std::to_string(result) + ")");
 
         auto output = Napi::Object::New(env);
@@ -237,7 +286,7 @@ private:
             segment.Set("text", whisper_full_get_segment_text(ctx.get(), i));
             segment.Set("start", Napi::Number::New(env, whisper_full_get_segment_t0(ctx.get(), i) * 10));
             segment.Set("end", Napi::Number::New(env, whisper_full_get_segment_t1(ctx.get(), i) * 10));
-            if (full_json) {
+            if (include_tokens) {
                 auto tokens = Napi::Array::New(env);
                 uint32_t index = 0;
                 for (int j = 0; j < whisper_full_n_tokens(ctx.get(), i); ++j) {

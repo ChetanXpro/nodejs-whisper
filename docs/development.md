@@ -52,8 +52,13 @@ npm run test:native
 npm run test:integration
 ```
 
-The native suite includes a C++ logging test and real transcription tests. The CLI suite tests the fallback
-backend. Integration tests use CPU inference and download the tiny.en and Silero VAD models when needed.
+The native suite includes a C++ logging test, model reuse tests, and structured-result/cancellation tests for
+both backends. The CLI suite also tests VAD. Integration tests use CPU inference and download the tiny.en and
+Silero VAD models when needed. To exercise the new API on a GPU locally, after building and preparing models:
+
+```bash
+WHISPER_TEST_GPU=1 node --test test/transcription.integration.js
+```
 
 ## Packaging native binaries
 
@@ -79,6 +84,7 @@ artifacts into `prebuilds/` before `npm pack` or `npm publish`. The workflow doe
 | `ERR_WHISPER_BUSY` | Configuration can't change while work or cleanup is in progress |
 | `ERR_WHISPER_NATIVE_UNAVAILABLE` | The requested native backend isn't usable |
 | `ERR_WHISPER_NATIVE` | Native audio decoding, model loading, or inference failed |
+| `ABORT_ERR` | The request was cancelled with its `AbortSignal` (`AbortError`) |
 
 Queue timeouts don't interrupt running inference. After `disposeWhisper()` completes, new requests can start
 fresh workers. Call `configureWhisper()` only when there are no active or waiting requests.
