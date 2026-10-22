@@ -1,0 +1,4 @@
+{
+  "private": true,
+  "binary": { "napi_versions": [8] }
+}

@@ -1,6 +1,6 @@
 {
 	"name": "nodejs-whisper",
-	"version": "0.3.1",
+	"version": "0.4.0-beta.1",
 	"description": "Node bindings for OpenAI's Whisper. Optimized for CPU.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -18,11 +18,18 @@
 		"start": "ts-node src/index.ts",
 		"dev": "nodemon --watch 'src/**/*.ts' --exec ts-node src/index.ts",
 		"test": "node --require ts-node/register --test test/*.test.js",
-		"test:integration": "node --require ts-node/register --test test/core.integration.js",
+		"test:models": "node --require ts-node/register test/prepare-models.js",
+		"test:integration": "npm run test:models && node --require ts-node/register --test test/core.integration.js",
 		"test:example": "ts-node example/index.ts",
 		"typecheck": "tsc --noEmit",
 		"build": "tsc && chmod +x dist/downloadModel.js",
-		"format": "prettier --write src/**/*.ts test/**/*.js"
+		"format": "prettier --write 'src/**/*.ts' 'test/**/*.js' 'scripts/**/*.js'",
+		"install": "node scripts/build-native.js --optional",
+		"build:native": "node scripts/build-native.js",
+		"test:native": "npm run build && npm run test:models && npm run test:native:diagnostics && node --test --test-reporter=tap test/native.integration.js",
+		"test:native:diagnostics": "cmake --build build/default --config Release --target nodejs_whisper_diagnostics_test && ctest --test-dir build/default -C Release -R nodejs_whisper_diagnostics --output-on-failure",
+		"prepack": "npm run build",
+		"package:native": "node scripts/package-native.js"
 	},
 	"keywords": [
 		"OpenAI",
@@ -52,6 +59,7 @@
 		"url": "https://github.com/ChetanXpro/nodejs-whisper/issues"
 	},
 	"dependencies": {
+		"node-addon-api": "^8.9.2",
 		"readline-sync": "^1.4.10",
 		"shelljs": "^0.10.0"
 	},
@@ -60,12 +68,22 @@
 		"@types/readline-sync": "^1.4.4",
 		"@types/shelljs": "^0.8.12",
 		"nodemon": "3.1.10",
+		"pino": "^9.14.0",
 		"prettier": "^3.0.0",
 		"ts-node": "^10.8.2",
 		"typescript": "^5.1.6"
 	},
 	"files": [
 		"dist/",
-		"cpp/"
-	]
+		"cpp/",
+		"native/",
+		"scripts/",
+		"prebuilds/"
+	],
+	"optionalDependencies": {
+		"cmake-js": "^8.0.0"
+	},
+	"engines": {
+		"node": ">=18"
+	}
 }

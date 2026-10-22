@@ -5,19 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0-beta.1] - 2026-10-22
 
 ### Added
 
-- Nothing yet
+- Native inference with model reuse between requests.
+- `configureWhisper()`, `getWhisperStatus()`, and `disposeWhisper()` to manage concurrency, queued requests, and model cleanup.
 
 ### Changed
 
-- Nothing yet
+- `nodewhisper()` prefers the native backend, with CLI fallback when the addon is unavailable or an option requires it.
+- By default, one transcription runs at a time and up to 100 requests can wait. Additional requests reject when the queue is full; limits are configurable.
 
 ### Fixed
 
-- Nothing yet
+- Support Pino and other loggers that provide `info()` without `log()`.
+- Native VAD respects the configured thread count, including when reusing a model, avoiding slowdowns on machines with fewer CPU cores.
 
 ---
 

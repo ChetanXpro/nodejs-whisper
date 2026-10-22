@@ -43,6 +43,7 @@ test(
 		let transcript
 		try {
 			transcript = await nodewhisper(audioFile, {
+				backend: 'cli',
 				modelName: 'tiny.en',
 				autoDownloadModelName: 'tiny.en',
 				autoDownloadVadModelName: 'silero-v6.2.0',

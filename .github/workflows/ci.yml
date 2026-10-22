@@ -25,6 +25,8 @@ jobs:
     
     - name: Install dependencies
       run: npm ci
+      env:
+        NODEJS_WHISPER_SKIP_NATIVE: '1'
     
     - name: Run type check
       run: npm run typecheck

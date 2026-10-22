@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict')
 const test = require('node:test')
+const pino = require('pino')
 
 const { whisperShell } = require('../src/whisper')
 
@@ -83,10 +84,29 @@ test('whisperShell rejects failed commands while preserving diagnostic output', 
 
 	await assert.rejects(() => whisperShell(command, undefined, logger), new RegExp(stderrMessage))
 	assert.ok(events.some(([level, message]) => level === 'debug' && message === stderrMessage))
-	assert.ok(
-		events.some(
-			([level, message, detail]) =>
-				level === 'error' && message === '[Nodejs-whisper] Error:' && detail.includes(stderrMessage)
-		)
+	assert.ok(events.some(([level, message]) => level === 'error' && message.includes(stderrMessage)))
+})
+
+test('whisperShell accepts Pino without log and preserves severity and error details', async () => {
+	const records = []
+	const logger = pino({ level: 'debug' }, { write: line => records.push(JSON.parse(line)) }).child({ request: 'cli' })
+	assert.equal(logger.log, undefined)
+	const command = source => {
+		const encoded = Buffer.from(source).toString('base64')
+		return `${quoteArgument(process.execPath)} -e "eval(Buffer.from('${encoded}','base64').toString())"`
+	}
+	const transcript = await whisperShell(
+		command("process.stdout.write('transcript'); process.stderr.write('diagnostics')"),
+		undefined,
+		logger
 	)
+	assert.equal(transcript, 'transcript')
+	assert.ok(records.some(record => record.level === 30 && record.msg === 'transcript'))
+	assert.ok(records.some(record => record.level === 20 && record.msg === 'diagnostics'))
+	await assert.rejects(
+		whisperShell(command("process.stderr.write('failure details'); process.exit(1)"), undefined, logger),
+		/failure details/
+	)
+	assert.ok(records.some(record => record.level === 50 && record.msg.includes('failure details')))
+	assert.ok(records.every(record => record.request === 'cli'))
 })

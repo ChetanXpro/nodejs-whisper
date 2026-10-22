@@ -1,5 +1,5 @@
-export function getCmakeConfigureCommand(withCuda: boolean = false): string {
-	const configureCommand = ['cmake', '-B', 'build']
+export function getCmakeConfigureCommand(withCuda: boolean = false, buildDirectory = 'build'): string {
+	const configureCommand = ['cmake', '-B', buildDirectory]
 	const extraCmakeArgs = process.env.NODEJS_WHISPER_CMAKE_ARGS?.trim()
 
 	if (withCuda) {
