@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-10-23
+
+- Stable release of the native inference backend, model reuse, and configurable request queue introduced in `0.4.0-beta.1`.
+- Adds prebuilt native binaries for Windows x64 and Linux x64 (glibc), alongside macOS ARM64.
+
 ## [0.4.0-beta.1] - 2026-10-22
 
 ### Added
