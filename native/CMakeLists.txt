@@ -16,6 +16,27 @@ if(WIN32)
 endif()
 add_subdirectory(../cpp/whisper.cpp whisper)
 
+# The bundled whisper.cpp fixes VAD at four threads instead of honoring
+# whisper_full_params.n_threads. Patch a build copy so the submodule stays intact.
+get_target_property(WHISPER_SOURCE_DIR whisper SOURCE_DIR)
+get_target_property(WHISPER_SOURCES whisper SOURCES)
+set(WHISPER_SOURCE "${WHISPER_SOURCE_DIR}/whisper.cpp")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${WHISPER_SOURCE}")
+file(READ "${WHISPER_SOURCE}" WHISPER_CONTENT)
+set(VAD_THREADS_BEFORE "    auto vctx = state->vad_context;\n")
+set(VAD_THREADS_AFTER "${VAD_THREADS_BEFORE}    vctx->n_threads = params.n_threads;\n    WHISPER_LOG_INFO(\"%s: n_threads = %d\\n\", __func__, vctx->n_threads);\n")
+string(FIND "${WHISPER_CONTENT}" "${VAD_THREADS_BEFORE}" VAD_THREADS_POSITION)
+list(FIND WHISPER_SOURCES "whisper.cpp" WHISPER_SOURCE_POSITION)
+if(VAD_THREADS_POSITION EQUAL -1 OR WHISPER_SOURCE_POSITION EQUAL -1)
+    message(FATAL_ERROR "whisper.cpp changed: review the VAD thread-limit patch")
+endif()
+string(REPLACE "${VAD_THREADS_BEFORE}" "${VAD_THREADS_AFTER}" WHISPER_CONTENT "${WHISPER_CONTENT}")
+set(PATCHED_WHISPER_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/whisper-vad-threads.cpp")
+file(CONFIGURE OUTPUT "${PATCHED_WHISPER_SOURCE}" CONTENT "${WHISPER_CONTENT}" @ONLY)
+list(REMOVE_AT WHISPER_SOURCES ${WHISPER_SOURCE_POSITION})
+list(APPEND WHISPER_SOURCES "${PATCHED_WHISPER_SOURCE}")
+set_property(TARGET whisper PROPERTY SOURCES "${WHISPER_SOURCES}")
+
 execute_process(COMMAND node -p "require('node-addon-api').include"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
     OUTPUT_VARIABLE NODE_ADDON_API_DIR OUTPUT_STRIP_TRAILING_WHITESPACE

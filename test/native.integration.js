@@ -123,6 +123,7 @@ test(
 	{ timeout: 120000 },
 	async t => {
 		const { directory, events, logger } = await fixture(t)
+		await configureWhisper({ threadsPerWorker: 1 })
 		const audio = path.join(directory, 'vad.wav')
 		await fs.copyFile(motherTeresa, audio)
 		const transcribe = async (phase, requestOptions) => {
@@ -148,8 +149,17 @@ test(
 			},
 		}
 		for (let i = 0; i < 2; i++) {
-			const result = await transcribe(i === 0 ? 'Initial VAD inference' : 'Reused VAD inference', vadOptions)
+			const result = await transcribe(i === 0 ? 'Initial VAD inference' : 'Reused VAD inference', {
+				...vadOptions,
+				whisperOptions: { ...vadOptions.whisperOptions, threads: i === 0 ? undefined : 2 },
+			})
 			assert.match(plain(result), /i do not want.*your money/)
+			const vadThreads = events
+				.filter(([level]) => level === 'debug')
+				.flatMap(([, message]) =>
+					[...message.matchAll(/whisper_vad: n_threads = (\d+)/g)].map(match => +match[1])
+				)
+			assert.deepEqual(vadThreads, i === 0 ? [1] : [1, 2], 'VAD must honor thread limits on reused contexts')
 		}
 		assert.equal(loads(events).length, 1)
 		assert.ok(events.some(([, text]) => text.includes('whisper_vad_init_from_file_with_params')))
