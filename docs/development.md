@@ -36,11 +36,15 @@ Pass `withCuda: true` when transcribing to select the CUDA build.
 | `NODEJS_WHISPER_CUDA=1` | Select the CUDA variant for native builds, including during installation |
 | `NODEJS_WHISPER_CMAKE_ARGS` | Pass CMake definitions as `-DNAME=value` |
 
-For example, on a POSIX shell:
+Native builds disable optional x86 CPU instructions by default. For a build used only on the machine
+compiling it, enable host-specific optimization on a POSIX shell:
 
 ```bash
-NODEJS_WHISPER_CMAKE_ARGS="-DGGML_NATIVE=OFF" npm run build:native
+NODEJS_WHISPER_CMAKE_ARGS="-DGGML_NATIVE=ON" npm run build:native
 ```
+
+Do not distribute that binary to other machines. Rebuild with `-DGGML_NATIVE=OFF` before packaging;
+this also clears instruction flags left in the CMake cache by older builds.
 
 ## Tests
 
@@ -73,6 +77,8 @@ paths also distinguish glibc and musl.
 
 The integration workflow builds on Linux, macOS, and Windows and uploads binary artifacts. Merge the required
 artifacts into `prebuilds/` before `npm pack` or `npm publish`. The workflow doesn't publish them automatically.
+Packaging rejects host-specific CPU flags. Linux CI also runs the packaged addon under QEMU with an older CPU
+that lacks AVX and FMA, so the CI host's instruction support cannot hide compatibility problems.
 
 ## Error codes and debugging
 

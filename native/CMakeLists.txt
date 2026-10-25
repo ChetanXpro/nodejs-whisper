@@ -8,6 +8,14 @@ set(WHISPER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(WHISPER_BUILD_SERVER OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "Portable CPU binaries")
+# In this ggml version, GGML_NATIVE=OFF still enables x86 extensions by default.
+# Reset cached flags too: rebuilding an older configuration must remove them.
+if(NOT GGML_NATIVE)
+    foreach(FEATURE SSE42 AVX AVX2 AVX_VNNI FMA F16C BMI2
+            AVX512 AVX512_VBMI AVX512_VNNI AVX512_BF16 AMX_TILE AMX_INT8 AMX_BF16)
+        set(GGML_${FEATURE} OFF CACHE BOOL "Disabled for portable CPU binaries" FORCE)
+    endforeach()
+endif()
 set(GGML_METAL_EMBED_LIBRARY ON CACHE BOOL "" FORCE)
 if(WIN32)
     # Node workers unload the addon on exit. ggml's own thread pool joins its
