@@ -258,7 +258,7 @@ test('ts-node CLI runs the source API with a native worker and exits when idle',
 
 test(
 	'native segment callback errors abort safely, preserve the error, and allow recovery',
-	{ timeout: 90000 },
+	{ timeout: 210000 },
 	async t => {
 		const { audio } = await fixture(t)
 		// Isolate the native boundary test so a regression becomes a failed subprocess.
@@ -267,6 +267,8 @@ test(
 		const addon = require(${JSON.stringify(findNativeAddon())});
 		const { readWav } = require(${JSON.stringify(path.resolve(__dirname, '../dist/audio'))});
 		const context = new addon.Context(${JSON.stringify(path.resolve(__dirname, '../cpp/whisper.cpp/models/ggml-tiny.en.bin'))}, false);
+		const started = Date.now();
+		const report = phase => console.log(phase + ': ' + (Date.now() - started) + 'ms');
 		try {
 			const audio = readWav(${JSON.stringify(audio)});
 			const longer = new Float32Array(audio.length * 4);
@@ -278,16 +280,28 @@ test(
 				throw expected;
 			}), error => error === expected);
 			assert.equal(callbacks, 1, 'do not call JS again after the first callback failure');
+			report('Segment callback error preserved');
 			const progressError = new Error('progress callback failed');
 			assert.throws(() => context.transcribe(longer, {threads: 2}, () => {}, () => { throw progressError }), error => error === progressError);
+			report('Progress callback error preserved');
 			const result = context.transcribe(audio, {threads: 2}, () => {});
 			assert.match(result.segments.map(s => s.text).join(''), /country/i);
+			report('Transcription after callback errors');
 			assert.throws(() => context.transcribe(audio, {threads: 2}, () => context.close()), /Cannot close a context during transcription/);
+			report('Close during transcription rejected');
 			assert.match(context.transcribe(audio, {threads: 2}, () => {}).segments.map(s => s.text).join(''), /country/i);
-			console.log('callback recovery verified');
+			report('callback recovery verified');
 		} finally { context.close(); }
 	`
-		const { stdout } = await promisify(execFile)(process.execPath, ['-e', script], { timeout: 60000 })
+		// Five inference calls share this limit, including recovery on CPUs without AVX/FMA.
+		const { stdout } = await promisify(execFile)(process.execPath, ['-e', script], { timeout: 180000 }).catch(
+			error => {
+				t.diagnostic(`Callback subprocess: killed=${error.killed}, signal=${error.signal}`)
+				if (error.stdout) t.diagnostic(error.stdout.trim())
+				throw error
+			}
+		)
+		t.diagnostic(stdout.trim())
 		assert.match(stdout, /callback recovery verified/)
 	}
 )

@@ -45,6 +45,14 @@ jobs:
     - name: Package native binary
       run: npm run package:native
 
+    - name: Test Linux binary without AVX or FMA
+      if: runner.os == 'Linux' && runner.arch == 'X64'
+      timeout-minutes: 10
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qemu-user
+        qemu-x86_64 -cpu Nehalem "$(command -v node)" --jitless test/native.portable.js
+
     - uses: actions/upload-artifact@v4
       with:
         name: native-${{ runner.os }}-${{ runner.arch }}
