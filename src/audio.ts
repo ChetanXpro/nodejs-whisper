@@ -12,7 +12,7 @@ export function readWav(filePath: string): Float32Array {
 		bits = 0,
 		blockAlign = 0
 	let data: Buffer | undefined
-	for (let offset = 12; offset + 8 <= buffer.length; ) {
+	for (let offset = 12; offset + 8 <= buffer.length;) {
 		const id = buffer.toString('ascii', offset, offset + 4)
 		const length = buffer.readUInt32LE(offset + 4)
 		const start = offset + 8
